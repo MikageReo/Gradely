@@ -151,6 +151,86 @@
             font-size: 14px;
             line-height: 1.6;
         }
+        .assignments-card {
+            margin-top: 20px;
+        }
+        .assignments-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .assignments-meta h3 {
+            margin: 0;
+        }
+        .assignments-meta .muted {
+            color: var(--muted);
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+        .pill-count {
+            background: rgba(25,118,210,0.12);
+            color: #0d47a1;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 13px;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+        }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .table th,
+        .table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+        }
+        .table th {
+            color: #555;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            background: #f8fafc;
+        }
+        .assignment-title {
+            font-weight: 600;
+            color: #222;
+        }
+        .assignment-course {
+            color: var(--muted);
+            font-size: 13px;
+            margin-top: 4px;
+        }
+        .due-date {
+            white-space: nowrap;
+            color: #333;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 12px;
+        }
+        .status-badge.info {
+            background: rgba(25,118,210,0.12);
+            color: #0d47a1;
+        }
+        .status-badge.danger {
+            background: rgba(229,57,53,0.12);
+            color: #c62828;
+        }
+        .empty-state {
+            padding: 16px;
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 8px;
+            color: #555;
+        }
         @media (max-width: 768px) {
             .container {
                 flex-direction: column;
@@ -191,6 +271,9 @@
                     {{ session('success') }}
                 </div>
             @endif
+            @php
+                $pendingAssignments = $pendingAssignments ?? collect();
+            @endphp
 
             <div class="header">
                 <div>
@@ -200,6 +283,56 @@
                     <p>Logged in as:</p>
                     <p class="user-name">{{ Auth::user()->name }}</p>
                 </div>
+            </div>
+
+            <div class="card assignments-card">
+                <div class="assignments-meta">
+                    <div>
+                        <p class="muted">Pending assignments</p>
+                        <h3>Assignments</h3>
+                    </div>
+                    <span class="pill-count">{{ $pendingAssignments->count() }} pending</span>
+                </div>
+
+                @if ($pendingAssignments->isEmpty())
+                    <div class="empty-state">
+                        You have no pending assignments. You're all caught up!
+                    </div>
+                @else
+                    <div class="table-wrapper">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Assignment</th>
+                                    <th>Due Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($pendingAssignments as $assignment)
+                                    @php
+                                        $status = $assignment->computed_status ?? 'Pending';
+                                        $statusClass = $status === 'Overdue' ? 'danger' : 'info';
+                                    @endphp
+                                    <tr>
+                                        <td>
+                                            <div class="assignment-title">{{ $assignment->title }}</div>
+                                            @if ($assignment->course)
+                                                <div class="assignment-course">{{ $assignment->course->course_name }}</div>
+                                            @endif
+                                        </td>
+                                        <td class="due-date">
+                                            {{ $assignment->due_date ? $assignment->due_date->format('M d, Y g:ia') : 'No due date set' }}
+                                        </td>
+                                        <td>
+                                            <span class="status-badge {{ $statusClass }}">{{ $status }}</span>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
             </div>
 
             <div class="cards">

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\StudentDashboardController;
 use Illuminate\Support\Facades\Route;
 
 // Ensure root renders the welcome page
@@ -45,12 +46,8 @@ Route::post('/register', function (\Illuminate\Http\Request $request) {
 // Protected Dashboard Routes (require authentication)
 Route::middleware('auth')->group(function () {
     // Student Dashboard
-    Route::get('/dashboard/student', function () {
-        return response(view('student_dashboard'))
-            ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
-            ->header('Pragma', 'no-cache')
-            ->header('Expires', '0');
-    })->name('student.dashboard');
+    Route::get('/dashboard/student', [StudentDashboardController::class, 'index'])
+        ->name('student.dashboard');
 
     // Lecturer Dashboard
     Route::get('/dashboard/lecturer', function () {
