@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\Assignments;
 use App\Models\User;
 use App\Models\SubmissionComments;
+use App\Models\SubmissionFile;
 
 class Submissions extends Model
 {
@@ -48,5 +49,13 @@ class Submissions extends Model
     public function submissionComments()
     {
         return $this->hasMany(SubmissionComments::class, 'submission_id');
+    }
+
+    /**
+     * Get all files for this submission
+     */
+    public function submissionFiles()
+    {
+        return $this->hasMany(SubmissionFile::class, 'submission_id');
     }
 }

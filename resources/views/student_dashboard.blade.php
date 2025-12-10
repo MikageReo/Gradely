@@ -200,6 +200,10 @@
             font-weight: 600;
             color: #222;
         }
+        .assignment-title a:hover {
+            color: var(--color-primary);
+            text-decoration: underline;
+        }
         .assignment-course {
             color: var(--muted);
             font-size: 13px;
@@ -316,7 +320,11 @@
                                     @endphp
                                     <tr>
                                         <td>
-                                            <div class="assignment-title">{{ $assignment->title }}</div>
+                                            <div class="assignment-title">
+                                                <a href="{{ route('assignment.submission', $assignment->id) }}" style="color: inherit; text-decoration: none;">
+                                                    {{ $assignment->title }}
+                                                </a>
+                                            </div>
                                             @if ($assignment->course)
                                                 <div class="assignment-course">{{ $assignment->course->course_name }}</div>
                                             @endif

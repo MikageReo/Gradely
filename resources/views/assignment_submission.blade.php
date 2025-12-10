@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Assignment: {{ $assignment->title }} - GRADELY</title>
+    <style>
+        :root {
+            --color-primary: #1976D2;
+            --color-secondary: #00897B;
+            --bg: #E3F2FD;
+            --muted: #666;
+            --white: #fff;
+            --font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            --danger: #E53935;
+            --success: #43A047;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .assignment-card {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .assignment-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .assignment-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--color-primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: var(--white);
+        }
+        .assignment-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #222;
+        }
+        .assignment-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .info-icon {
+            width: 20px;
+            height: 20px;
+            color: var(--color-primary);
+        }
+        .info-label {
+            font-size: 14px;
+            color: var(--muted);
+            margin-right: 8px;
+        }
+        .info-value {
+            font-size: 14px;
+            font-weight: 500;
+            color: #222;
+        }
+        .info-value.danger {
+            color: var(--danger);
+        }
+        .info-value.success {
+            color: var(--success);
+        }
+        .upload-section {
+            border: 2px dashed #BBDEFB;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 30px;
+            background: #F5F5F5;
+        }
+        .upload-section.has-files {
+            border-color: var(--color-primary);
+            background: #E3F2FD;
+        }
+        .file-input-wrapper {
+            margin-bottom: 15px;
+        }
+        .file-input {
+            display: none;
+        }
+        .file-input-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: var(--color-primary);
+            color: var(--white);
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        .file-input-label:hover {
+            background: #1565C0;
+        }
+        .file-list {
+            margin-top: 15px;
+            text-align: left;
+        }
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: var(--white);
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        .file-name {
+            font-size: 14px;
+            color: #222;
+        }
+        .file-remove {
+            background: var(--danger);
+            color: var(--white);
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .submit-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: var(--color-primary);
+            color: var(--white);
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .submit-btn:hover {
+            background: #1565C0;
+        }
+        .submit-btn:disabled {
+            background: #BBDEFB;
+            cursor: not-allowed;
+        }
+        .comments-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid #E0E0E0;
+        }
+        .comments-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .comments-icon {
+            width: 24px;
+            height: 24px;
+            color: var(--color-primary);
+        }
+        .comments-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #222;
+        }
+        .comment-list {
+            margin-bottom: 20px;
+        }
+        .comment-item {
+            padding: 12px;
+            margin-bottom: 12px;
+            background: #F5F5F5;
+            border-radius: 6px;
+        }
+        .comment-author {
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-bottom: 4px;
+        }
+        .comment-text {
+            color: #333;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .comment-form {
+            display: flex;
+            gap: 10px;
+        }
+        .comment-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #E0E0E0;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: var(--font);
+        }
+        .comment-submit {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 20px;
+            background: var(--color-primary);
+            color: var(--white);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .comment-submit:hover {
+            background: #1565C0;
+        }
+        .success-alert {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 16px;
+            text-align: center;
+            z-index: 1000;
+            animation: slideDown 0.3s ease-out;
+        }
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        @keyframes slideUp {
+            from {
+                transform: translateY(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+        }
+        .success-alert.hide {
+            animation: slideUp 0.3s ease-out;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--color-primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .submitted-files {
+            margin-top: 15px;
+            padding: 15px;
+            background: #E8F5E9;
+            border-radius: 6px;
+        }
+        .submitted-files-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2E7D32;
+        }
+        .submitted-file-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0;
+            color: #1B5E20;
+        }
+        @media (max-width: 768px) {
+            .assignment-info {
+                grid-template-columns: 1fr;
+            }
+            .comment-form {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        @if (session('success'))
+            <div class="success-alert" id="successAlert">
+                {{ session('success') }}
+            </div>
+        @endif
+
+        <a href="{{ Auth::user()->role === 'student' ? route('student.dashboard') : route('lecturer.dashboard') }}" class="back-link">← Back to Dashboard</a>
+
+        <div class="assignment-card">
+            <div class="assignment-header">
+                <div class="assignment-icon">📝</div>
+                <h1 class="assignment-title">Assignment: {{ $assignment->title }}</h1>
+            </div>
+
+            <div class="assignment-info">
+                <div class="info-item">
+                    <svg class="info-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="info-label">Due Date:</span>
+                    <span class="info-value">{{ $assignment->due_date ? $assignment->due_date->format('d M Y') : 'No due date' }}</span>
+                </div>
+                <div class="info-item">
+                    <svg class="info-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="info-label">Submission Status:</span>
+                    @if($submission)
+                        <span class="info-value success">✓ Submitted</span>
+                    @else
+                        <span class="info-value danger">× Not Submitted</span>
+                    @endif
+                </div>
+                <div class="info-item">
+                    <svg class="info-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="info-label">Time Remaining:</span>
+                    @php
+                        $isExpired = $assignment->due_date && $assignment->due_date->isPast();
+                    @endphp
+                    @if($isExpired)
+                        <span class="info-value danger">Expired</span>
+                    @elseif($assignment->due_date)
+                        <span class="info-value">{{ now()->diffForHumans($assignment->due_date, true) }} remaining</span>
+                    @else
+                        <span class="info-value">No deadline</span>
+                    @endif
+                </div>
+                <div class="info-item">
+                    <svg class="info-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                    </svg>
+                    <span class="info-label">Grading Status:</span>
+                    @if($submission && $submission->status === 'marked')
+                        <span class="info-value success">✓ Graded</span>
+                    @else
+                        <span class="info-value danger">✗ Not Graded</span>
+                    @endif
+                </div>
+            </div>
+
+            @if($submission && $submission->submissionFiles->count() > 0)
+                <div class="submitted-files">
+                    <div class="submitted-files-title">
+                        Submitted Files:
+                        @if(Auth::user()->role === 'lecturer' && $submission->student)
+                            <span style="font-weight: normal; color: #666;">(by {{ $submission->student->name }})</span>
+                        @endif
+                    </div>
+                    @foreach($submission->submissionFiles as $file)
+                        <div class="submitted-file-item">
+                            <span>📄</span>
+                            <span>{{ $file->original_filename }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+
+            @if(Auth::user()->role === 'student' && (!$submission || $submission->status !== 'marked'))
+                <form id="submissionForm" action="{{ route('assignment.submission.store', $assignment->id) }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <div class="upload-section" id="uploadSection">
+                        <div class="file-input-wrapper">
+                            <input type="file" name="files[]" id="fileInput" class="file-input" multiple accept=".pdf,.doc,.docx,.txt,.rtf,.odt">
+                            <label for="fileInput" class="file-input-label">
+                                <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M5.5 13a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 13H11V9.413l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13H5.5z"/>
+                                    <path d="M9 13h2v5a1 1 0 11-2 0v-5z"/>
+                                </svg>
+                                Choose files to upload
+                            </label>
+                        </div>
+                        <div class="file-list" id="fileList"></div>
+                        <button type="submit" class="submit-btn" id="submitBtn" disabled>
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
+                            </svg>
+                            Submit
+                        </button>
+                    </div>
+                </form>
+            @endif
+
+            @if(Auth::user()->role === 'lecturer' && !$submission)
+                <div class="upload-section" style="background: #FFF3E0; border-color: #FFB74D;">
+                    <p style="color: #E65100;">No submissions yet for this assignment.</p>
+                </div>
+            @endif
+
+            <div class="comments-section">
+                <div class="comments-header">
+                    <svg class="comments-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"/>
+                    </svg>
+                    <h2 class="comments-title">Comments</h2>
+                </div>
+
+                <div class="comment-list">
+                    @if($submission && $submission->submissionComments->count() > 0)
+                        @foreach($submission->submissionComments as $comment)
+                            <div class="comment-item">
+                                <div class="comment-author">
+                                    {{ $comment->user->role === 'lecturer' ? 'Lecturer' : 'You' }}:
+                                    {{ $comment->user->name }}
+                                </div>
+                                <div class="comment-text">{{ $comment->comment }}</div>
+                            </div>
+                        @endforeach
+                    @else
+                        <div class="comment-item">
+                            <div class="comment-text" style="color: var(--muted);">No comments yet. Start the conversation!</div>
+                        </div>
+                    @endif
+                </div>
+
+                @if($submission || Auth::user()->role === 'student')
+                    <form action="{{ route('assignment.submission.comment', $assignment->id) }}" method="POST" class="comment-form">
+                        @csrf
+                        <input type="text" name="comment" class="comment-input" placeholder="Write a comment..." required>
+                        <button type="submit" class="comment-submit">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
+                            </svg>
+                        </button>
+                    </form>
+                @else
+                    <div class="comment-item" style="background: #FFF3E0; color: #E65100;">
+                        <div class="comment-text">No submission available. Comments can be added once a student submits their assignment.</div>
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Auto-hide success alert
+        const successAlert = document.getElementById('successAlert');
+        if (successAlert) {
+            setTimeout(() => {
+                successAlert.classList.add('hide');
+                setTimeout(() => {
+                    successAlert.remove();
+                }, 300);
+            }, 4000);
+        }
+
+        // File upload handling
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const submitBtn = document.getElementById('submitBtn');
+        const uploadSection = document.getElementById('uploadSection');
+        const selectedFiles = [];
+
+        if (fileInput) {
+            fileInput.addEventListener('change', function(e) {
+                const files = Array.from(e.target.files);
+                selectedFiles.length = 0;
+                selectedFiles.push(...files);
+                updateFileList();
+            });
+
+            function updateFileList() {
+                fileList.innerHTML = '';
+                if (selectedFiles.length > 0) {
+                    uploadSection.classList.add('has-files');
+                    submitBtn.disabled = false;
+
+                    selectedFiles.forEach((file, index) => {
+                        const fileItem = document.createElement('div');
+                        fileItem.className = 'file-item';
+                        fileItem.innerHTML = `
+                            <span class="file-name">${file.name}</span>
+                            <button type="button" class="file-remove" onclick="removeFile(${index})">Remove</button>
+                        `;
+                        fileList.appendChild(fileItem);
+                    });
+                } else {
+                    uploadSection.classList.remove('has-files');
+                    submitBtn.disabled = true;
+                }
+            }
+
+            window.removeFile = function(index) {
+                selectedFiles.splice(index, 1);
+                updateFileList();
+
+                // Update the file input
+                const dt = new DataTransfer();
+                selectedFiles.forEach(file => dt.items.add(file));
+                fileInput.files = dt.files;
+            };
+        }
+    </script>
+</body>
+</html>
+

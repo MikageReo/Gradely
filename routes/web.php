@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\StudentDashboardController;
+use App\Http\Controllers\SubmissionController;
 use Illuminate\Support\Facades\Route;
 
 // Ensure root renders the welcome page
@@ -18,36 +19,36 @@ Route::get('/login', function () {
 
 // Protected Dashboard Routes (require authentication)
 Route::middleware('auth')->group(function () {
-                    // Admin: New Lecturer Registration Page
-                    Route::get('/admin/new-lecturer-registration', function () {
-                        if (auth()->user()->role !== 'admin') {
-                            abort(403, 'Unauthorized');
-                        }
-                        return view('new_lecturer_registration');
-                    })->name('admin.new_lecturer_registration');
-                // Admin: New Student Registration Page
-                Route::get('/admin/new-student-registration', function () {
-                    if (auth()->user()->role !== 'admin') {
-                        abort(403, 'Unauthorized');
-                    }
-                    return view('new_student_registration');
-                })->name('admin.new_student_registration');
-            // Admin: Register Student or Lecturer
-            Route::get('/admin/create-user', [\App\Http\Controllers\AdminUserController::class, 'create'])
-                ->name('admin.create_user');
+    // Admin: New Lecturer Registration Page
+    Route::get('/admin/new-lecturer-registration', function () {
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Unauthorized');
+        }
+        return view('new_lecturer_registration');
+    })->name('admin.new_lecturer_registration');
+    // Admin: New Student Registration Page
+    Route::get('/admin/new-student-registration', function () {
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Unauthorized');
+        }
+        return view('new_student_registration');
+    })->name('admin.new_student_registration');
+    // Admin: Register Student or Lecturer
+    Route::get('/admin/create-user', [\App\Http\Controllers\AdminUserController::class, 'create'])
+        ->name('admin.create_user');
 
-            Route::post('/admin/store-user', [\App\Http\Controllers\AdminUserController::class, 'store'])
-                ->name('admin.store_user');
-        // Admin Dashboard
-        Route::get('/dashboard/admin', function () {
-            if (auth()->user()->role !== 'admin') {
-                abort(403, 'Unauthorized');
-            }
-            return response(view('admin_dashboard'))
-                ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
-                ->header('Pragma', 'no-cache')
-                ->header('Expires', '0');
-        })->name('admin.dashboard');
+    Route::post('/admin/store-user', [\App\Http\Controllers\AdminUserController::class, 'store'])
+        ->name('admin.store_user');
+    // Admin Dashboard
+    Route::get('/dashboard/admin', function () {
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Unauthorized');
+        }
+        return response(view('admin_dashboard'))
+            ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
+    })->name('admin.dashboard');
     // Student Dashboard
     Route::get('/dashboard/student', [StudentDashboardController::class, 'index'])
         ->name('student.dashboard');
@@ -59,6 +60,14 @@ Route::middleware('auth')->group(function () {
             ->header('Pragma', 'no-cache')
             ->header('Expires', '0');
     })->name('lecturer.dashboard');
+
+    // Assignment Submission Routes
+    Route::get('/assignment/{assignmentId}/submission', [SubmissionController::class, 'show'])
+        ->name('assignment.submission');
+    Route::post('/assignment/{assignmentId}/submission', [SubmissionController::class, 'store'])
+        ->name('assignment.submission.store');
+    Route::post('/assignment/{assignmentId}/submission/comment', [SubmissionController::class, 'storeComment'])
+        ->name('assignment.submission.comment');
 });
 
 // Add POST handler for login form
@@ -98,6 +107,6 @@ Route::get('/logout', function (\Illuminate\Http\Request $request) {
     \Illuminate\Support\Facades\Auth::logout();
     $request->session()->invalidate();
     $request->session()->regenerateToken();
-    
+
     return redirect('/')->with('success', 'You have been logged out');
 })->name('logout');
