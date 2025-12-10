@@ -34,7 +34,6 @@
         
         <form method="POST" action="{{ url('/login') }}">
             @csrf
-            
             <div class="role-selection">
                 <label style="font-weight:bold;display:block;margin-bottom:10px;">Login as:</label>
                 <label class="role-label">
@@ -45,13 +44,16 @@
                     <input type="radio" name="role" value="lecturer" {{ old('role') == 'lecturer' ? 'checked' : '' }} required />
                     Lecturer
                 </label>
+                <label class="role-label">
+                    <input type="radio" name="role" value="admin" {{ old('role') == 'admin' ? 'checked' : '' }} required />
+                    Admin
+                </label>
             </div>
-            
             <input type="email" name="email" placeholder="Email" value="{{ old('email') }}" required />
             <input type="password" name="password" placeholder="Password" required />
             <button type="submit">Log In</button>
         </form>
-        <div class="muted">Don't have an account? <a href="{{ url('/register') }}">Register</a></div>
+        <!-- Register link removed -->
     </div>
 </body>
 </html>

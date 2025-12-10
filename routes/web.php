@@ -8,43 +8,46 @@ Route::get('/', function () {
     return view('gradely_welcome_page');
 })->name('home');
 
-// Simple pages for login and register views (GET only)
+// Simple page for login view (GET only)
 Route::get('/login', function () {
     return view('login');
 })->name('login');
 
-Route::get('/register', function () {
-    return view('register');
-})->name('register');
-
 // Add POST handler for registration form to persist user to database
-Route::post('/register', function (\Illuminate\Http\Request $request) {
-    $data = $request->validate([
-        'name' => 'required|string|max:255',
-        'email' => 'required|string|email|max:255|unique:users,email',
-        'password' => 'required|string|min:8|confirmed',
-        'role' => 'required|in:student,lecturer',
-    ]);
 
-    $user = \App\Models\User::create([
-        'name' => $data['name'],
-        'email' => $data['email'],
-        'password' => \Illuminate\Support\Facades\Hash::make($data['password']),
-        'role' => $data['role'],
-    ]);
-
-    \Illuminate\Support\Facades\Auth::login($user);
-
-    // Redirect to role-specific dashboard
-    if ($user->role === 'student') {
-        return redirect('/dashboard/student')->with('success', 'Registered successfully');
-    } else {
-        return redirect('/dashboard/lecturer')->with('success', 'Registered successfully');
-    }
-})->name('register.post');
 
 // Protected Dashboard Routes (require authentication)
 Route::middleware('auth')->group(function () {
+                    // Admin: New Lecturer Registration Page
+                    Route::get('/admin/new-lecturer-registration', function () {
+                        if (auth()->user()->role !== 'admin') {
+                            abort(403, 'Unauthorized');
+                        }
+                        return view('new_lecturer_registration');
+                    })->name('admin.new_lecturer_registration');
+                // Admin: New Student Registration Page
+                Route::get('/admin/new-student-registration', function () {
+                    if (auth()->user()->role !== 'admin') {
+                        abort(403, 'Unauthorized');
+                    }
+                    return view('new_student_registration');
+                })->name('admin.new_student_registration');
+            // Admin: Register Student or Lecturer
+            Route::get('/admin/create-user', [\App\Http\Controllers\AdminUserController::class, 'create'])
+                ->name('admin.create_user');
+
+            Route::post('/admin/store-user', [\App\Http\Controllers\AdminUserController::class, 'store'])
+                ->name('admin.store_user');
+        // Admin Dashboard
+        Route::get('/dashboard/admin', function () {
+            if (auth()->user()->role !== 'admin') {
+                abort(403, 'Unauthorized');
+            }
+            return response(view('admin_dashboard'))
+                ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                ->header('Pragma', 'no-cache')
+                ->header('Expires', '0');
+        })->name('admin.dashboard');
     // Student Dashboard
     Route::get('/dashboard/student', [StudentDashboardController::class, 'index'])
         ->name('student.dashboard');
@@ -63,7 +66,7 @@ Route::post('/login', function (\Illuminate\Http\Request $request) {
     $data = $request->validate([
         'email' => 'required|string|email|max:255',
         'password' => 'required|string|min:8',
-        'role' => 'required|in:student,lecturer',
+        'role' => 'required|in:student,lecturer,admin',
     ]);
 
     // Find user with matching email and role
@@ -83,8 +86,10 @@ Route::post('/login', function (\Illuminate\Http\Request $request) {
     // Redirect to role-specific dashboard
     if ($user->role === 'student') {
         return redirect('/dashboard/student')->with('success', 'Login successful');
-    } else {
+    } elseif ($user->role === 'lecturer') {
         return redirect('/dashboard/lecturer')->with('success', 'Login successful');
+    } else {
+        return redirect('/dashboard/admin')->with('success', 'Login successful');
     }
 })->name('login.post');
 
