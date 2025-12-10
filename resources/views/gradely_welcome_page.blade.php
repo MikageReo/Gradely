@@ -131,12 +131,11 @@
         <section class="welcome-card">
             <div class="card-text">
                 <h1>Welcome to GRADELY</h1>
-                <p>Learning Progress & Performance portal for BCS3263. Register or log in to manage courses, view grades and track progress.</p>
+                <p>Learning Progress & Performance portal for BCS3263. Log in to manage courses, view grades and track progress.</p>
             </div>
 
             <div class="card-actions">
-                {{-- Register and Login in the same box --}}
-                <a class="btn btn-register" href="{{ url('/register') }}">Register</a>
+                {{-- Only Login button remains --}}
                 <a class="btn btn-login"  href="{{ url('/login') }}">Log In</a>
             </div>
         </section>
