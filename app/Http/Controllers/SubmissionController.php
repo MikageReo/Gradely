@@ -21,7 +21,7 @@ class SubmissionController extends Controller
             ->findOrFail($assignmentId);
 
         $user = Auth::user();
-        
+
         // Check permissions
         if ($user->role === 'student') {
             $courseIds = $user->studentCourses()->pluck('courses.id');
@@ -111,7 +111,7 @@ class SubmissionController extends Controller
         // Store uploaded files
         foreach ($request->file('files') as $file) {
             $path = $file->store('submissions/' . $submission->id, 'public');
-            
+
             SubmissionFile::create([
                 'submission_id' => $submission->id,
                 'file_path' => $path,
@@ -142,7 +142,7 @@ class SubmissionController extends Controller
             $submission = Submissions::where('assignment_id', $assignmentId)
                 ->where('student_id', $user->id)
                 ->first();
-            
+
             if (!$submission) {
                 return back()->withErrors(['comment' => 'Please submit your assignment first before adding comments.']);
             }
@@ -151,7 +151,7 @@ class SubmissionController extends Controller
             // In a full implementation, you might want to add a student_id parameter
             $submission = Submissions::where('assignment_id', $assignmentId)
                 ->first();
-            
+
             if (!$submission) {
                 return back()->withErrors(['comment' => 'No submission found to comment on.']);
             }
