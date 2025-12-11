@@ -8,6 +8,7 @@ use App\Models\Assignments;
 use App\Models\Submissions;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
 
 class LecturerController extends Controller
 {
@@ -107,7 +108,18 @@ class LecturerController extends Controller
         $assignment->visibility = $data['visibility'];
 
         if ($request->hasFile('attachment')) {
-            $assignment->attachment = $request->file('attachment')->store('assignments', 'public');
+            $file = $request->file('attachment');
+            $originalName = $file->getClientOriginalName();
+            $publicPath = public_path('assignments');
+            
+            // Create directory if it doesn't exist
+            if (!File::exists($publicPath)) {
+                File::makeDirectory($publicPath, 0755, true);
+            }
+            
+            // Move file to public/assignments with original name
+            $file->move($publicPath, $originalName);
+            $assignment->attachment = 'assignments/' . $originalName;
         }
 
         $assignment->save();
@@ -152,13 +164,31 @@ class LecturerController extends Controller
         $assignment->status = $data['status'];
         $assignment->visibility = $data['visibility'];
 
+        // Handle attachment update
         if ($request->hasFile('attachment')) {
             // Delete old attachment if exists
             if ($assignment->attachment) {
-                Storage::disk('public')->delete($assignment->attachment);
+                $oldFilePath = public_path($assignment->attachment);
+                if (File::exists($oldFilePath)) {
+                    File::delete($oldFilePath);
+                }
             }
-            $assignment->attachment = $request->file('attachment')->store('assignments', 'public');
+            
+            // Store new attachment with original name
+            $file = $request->file('attachment');
+            $originalName = $file->getClientOriginalName();
+            $publicPath = public_path('assignments');
+            
+            // Create directory if it doesn't exist
+            if (!File::exists($publicPath)) {
+                File::makeDirectory($publicPath, 0755, true);
+            }
+            
+            // Move file to public/assignments with original name
+            $file->move($publicPath, $originalName);
+            $assignment->attachment = 'assignments/' . $originalName;
         }
+        // If no new file is uploaded, keep the existing attachment (do nothing)
 
         $assignment->save();
 
@@ -189,7 +219,10 @@ class LecturerController extends Controller
 
         // Delete attachment if exists
         if ($assignment->attachment) {
-            Storage::disk('public')->delete($assignment->attachment);
+            $filePath = public_path($assignment->attachment);
+            if (File::exists($filePath)) {
+                File::delete($filePath);
+            }
         }
 
         $assignment->delete();

@@ -116,6 +116,9 @@ Route::middleware('auth')->group(function () {
         ->name('assignment.submission.store');
     Route::post('/assignment/{assignmentId}/submission/comment', [SubmissionController::class, 'storeComment'])
         ->name('assignment.submission.comment');
+    
+    Route::post('/assignment/{assignmentId}/submission/grade', [SubmissionController::class, 'updateGrade'])
+        ->name('assignment.submission.grade');
 });
 
 // Add POST handler for login form

@@ -502,7 +502,7 @@
                                         </td>
                                         <td>
                                             <div class="action-buttons">
-                                                <button class="btn-secondary" onclick="openEditModal({{ $assignment->id }}, '{{ addslashes($assignment->title) }}', '{{ addslashes($assignment->description ?? '') }}', '{{ $assignment->due_date ? $assignment->due_date->format('Y-m-d\TH:i') : '' }}', '{{ $assignment->status }}', '{{ $assignment->visibility }}')">Edit</button>
+                                                <button class="btn-secondary" onclick="openEditModal({{ $assignment->id }}, {{ json_encode($assignment->title) }}, {{ json_encode($assignment->description ?? '') }}, {{ json_encode($assignment->due_date ? $assignment->due_date->format('Y-m-d\TH:i') : '') }}, {{ json_encode($assignment->status) }}, {{ json_encode($assignment->visibility) }}, {{ json_encode($assignment->attachment ? basename($assignment->attachment) : '') }}, {{ json_encode($assignment->attachment ?? '') }})">Edit</button>
                                                 <form action="{{ route('lecturer.assignment.delete', [$course->id, $assignment->id]) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this assignment?');">
                                                     @csrf
                                                     @method('DELETE')
@@ -628,7 +628,16 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="edit_attachment">Attachment</label>
+                    <div id="current-attachment" style="margin-bottom: 8px; padding: 8px; background: #f5f5f5; border-radius: 4px; display: none;">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <span style="font-size: 13px; color: var(--muted);">
+                                <span style="font-weight: 500;">Current:</span> <span id="current-attachment-name"></span>
+                            </span>
+                            <a href="#" id="current-attachment-link" target="_blank" style="font-size: 12px; color: var(--color-primary); text-decoration: none;">View</a>
+                        </div>
+                    </div>
                     <input type="file" class="form-control" id="edit_attachment" name="attachment" accept=".pdf,.doc,.docx,.txt">
+                    <small style="display: block; margin-top: 4px; color: var(--muted); font-size: 12px;">Leave empty to keep current attachment, or select a new file to replace it.</small>
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn-secondary" onclick="closeEditModal()">Cancel</button>
@@ -661,13 +670,32 @@
         }
 
         // Edit Modal Functions
-        function openEditModal(id, title, description, dueDate, status, visibility) {
+        function openEditModal(id, title, description, dueDate, status, visibility, attachmentName, attachmentPath) {
             document.getElementById('edit_title').value = title;
             document.getElementById('edit_description').value = description;
             document.getElementById('edit_due_date').value = dueDate;
             document.getElementById('edit_status').value = status;
             document.getElementById('edit_visibility').value = visibility;
             document.getElementById('editForm').action = '{{ route("lecturer.assignment.update", [$course->id, ":id"]) }}'.replace(':id', id);
+            
+            // Handle attachment display
+            const currentAttachmentDiv = document.getElementById('current-attachment');
+            const currentAttachmentName = document.getElementById('current-attachment-name');
+            const currentAttachmentLink = document.getElementById('current-attachment-link');
+            
+            if (attachmentPath && attachmentPath !== '' && attachmentPath !== 'null') {
+                currentAttachmentDiv.style.display = 'block';
+                currentAttachmentName.textContent = attachmentName || 'Current attachment';
+                // Build the public URL - attachmentPath is relative to public folder (e.g., assignments/filename.pdf)
+                currentAttachmentLink.href = '{{ url("/") }}/' + attachmentPath;
+            } else {
+                currentAttachmentDiv.style.display = 'none';
+                currentAttachmentLink.href = '#';
+            }
+            
+            // Reset file input
+            document.getElementById('edit_attachment').value = '';
+            
             document.getElementById('editModal').style.display = 'block';
         }
 

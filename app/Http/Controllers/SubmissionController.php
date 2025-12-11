@@ -9,6 +9,7 @@ use App\Models\SubmissionComments;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\File;
 
 class SubmissionController extends Controller
 {
@@ -39,14 +40,18 @@ class SubmissionController extends Controller
         // For students: get their own submission
         // For lecturers: get the first submission (or we could add student_id parameter later)
         if ($user->role === 'student') {
-            $submission = Submissions::with(['submissionFiles', 'submissionComments.user'])
+            $submission = Submissions::with(['submissionFiles', 'submissionComments' => function($query) {
+                $query->orderBy('created_at', 'desc')->with('user');
+            }])
                 ->where('assignment_id', $assignmentId)
                 ->where('student_id', $user->id)
                 ->first();
         } else {
             // For lecturers, get the first submission for this assignment
             // In a full implementation, you might want to add a student_id parameter
-            $submission = Submissions::with(['submissionFiles', 'submissionComments.user', 'student'])
+            $submission = Submissions::with(['submissionFiles', 'submissionComments' => function($query) {
+                $query->orderBy('created_at', 'desc')->with('user');
+            }, 'student'])
                 ->where('assignment_id', $assignmentId)
                 ->first();
         }
@@ -94,7 +99,10 @@ class SubmissionController extends Controller
 
             // Delete old files
             foreach ($submission->submissionFiles as $file) {
-                Storage::disk('public')->delete($file->file_path);
+                $filePath = public_path($file->file_path);
+                if (File::exists($filePath)) {
+                    File::delete($filePath);
+                }
                 $file->delete();
             }
         } else {
@@ -108,16 +116,33 @@ class SubmissionController extends Controller
             ]);
         }
 
-        // Store uploaded files
+        // Store uploaded files in public folder
+        $publicPath = public_path('submissions/' . $submission->id);
+        if (!File::exists($publicPath)) {
+            File::makeDirectory($publicPath, 0755, true);
+        }
+
         foreach ($request->file('files') as $file) {
-            $path = $file->store('submissions/' . $submission->id, 'public');
+            $originalName = $file->getClientOriginalName();
+            // Get file info BEFORE moving the file
+            $fileSize = $file->getSize();
+            $fileType = $file->getClientMimeType();
+            
+            // Handle duplicate filenames by adding timestamp
+            $fileName = pathinfo($originalName, PATHINFO_FILENAME);
+            $extension = pathinfo($originalName, PATHINFO_EXTENSION);
+            $uniqueName = $fileName . '_' . time() . '_' . uniqid() . '.' . $extension;
+            
+            // Move file to public folder
+            $file->move($publicPath, $uniqueName);
+            $relativePath = 'submissions/' . $submission->id . '/' . $uniqueName;
 
             SubmissionFile::create([
                 'submission_id' => $submission->id,
-                'file_path' => $path,
-                'original_filename' => $file->getClientOriginalName(),
-                'file_type' => $file->getClientMimeType(),
-                'file_size' => $file->getSize(),
+                'file_path' => $relativePath,
+                'original_filename' => $originalName,
+                'file_type' => $fileType,
+                'file_size' => $fileSize,
             ]);
         }
 
@@ -165,6 +190,44 @@ class SubmissionController extends Controller
 
         return redirect()->route('assignment.submission', $assignmentId)
             ->with('success', 'Comment added successfully!');
+    }
+
+    /**
+     * Update submission grade and feedback
+     */
+    public function updateGrade(Request $request, $assignmentId)
+    {
+        $request->validate([
+            'submission_id' => 'required|exists:submissions,id',
+            'score' => 'nullable|numeric|min:0|max:100',
+            'lecturer_feedback' => 'nullable|string|max:2000',
+        ]);
+
+        $assignment = Assignments::findOrFail($assignmentId);
+        $user = Auth::user();
+
+        // Only lecturers can grade
+        if ($user->role !== 'lecturer') {
+            abort(403, 'Only lecturers can grade submissions.');
+        }
+
+        // Verify lecturer owns this assignment
+        if ($assignment->lecturer_id !== $user->id) {
+            abort(403, 'You are not authorized to grade this assignment.');
+        }
+
+        $submission = Submissions::where('id', $request->submission_id)
+            ->where('assignment_id', $assignmentId)
+            ->firstOrFail();
+
+        $submission->score = $request->score;
+        $submission->lecturer_feedback = $request->lecturer_feedback;
+        $submission->status = 'marked';
+        $submission->marked_at = now();
+        $submission->save();
+
+        return redirect()->route('assignment.submission', $assignmentId)
+            ->with('success', 'Grade and feedback updated successfully!');
     }
 }
 

@@ -239,6 +239,98 @@
         .comment-submit:hover {
             background: #1565C0;
         }
+        .history-btn {
+            margin-left: auto;
+            padding: 8px 16px;
+            background: var(--color-secondary);
+            color: var(--white);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        .history-btn:hover {
+            background: #00695C;
+        }
+        .comment-time {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            overflow: auto;
+        }
+        .modal-content {
+            background-color: var(--white);
+            margin: 30px auto;
+            padding: 0;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 700px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            max-height: 90vh;
+        }
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 2px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #222;
+        }
+        .close {
+            color: var(--muted);
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            background: none;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .close:hover {
+            color: #222;
+        }
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+            max-height: calc(90vh - 200px);
+        }
+        .modal-comment-list {
+            margin-bottom: 20px;
+        }
+        .modal-comment-item {
+            padding: 12px;
+            margin-bottom: 12px;
+            background: #F5F5F5;
+            border-radius: 6px;
+        }
+        .modal-footer {
+            padding: 20px 24px;
+            border-top: 2px solid #f0f0f0;
+        }
         .success-alert {
             position: fixed;
             top: 0;
@@ -302,6 +394,16 @@
             gap: 8px;
             padding: 6px 0;
             color: #1B5E20;
+        }
+        .submitted-file-item a {
+            margin-left: auto;
+            color: var(--color-primary);
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .submitted-file-item a:hover {
+            text-decoration: underline;
         }
         @media (max-width: 768px) {
             .assignment-info {
@@ -389,8 +491,36 @@
                         <div class="submitted-file-item">
                             <span>📄</span>
                             <span>{{ $file->original_filename }}</span>
+                            <a href="{{ url('/') }}/{{ $file->file_path }}" target="_blank" style="margin-left: auto; color: var(--color-primary); text-decoration: none; font-size: 12px;">View/Download</a>
                         </div>
                     @endforeach
+                </div>
+            @endif
+
+            @if(Auth::user()->role === 'lecturer' && $submission)
+                <div style="margin-top: 30px; padding: 20px; background: #FFF9E6; border-radius: 8px; border: 2px solid #FFD54F;">
+                    <h3 style="margin-bottom: 15px; color: #F57C00; font-size: 18px;">📝 Grade Submission</h3>
+                    <form action="{{ route('assignment.submission.grade', $assignment->id) }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="submission_id" value="{{ $submission->id }}">
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #222;">Score (0-100)</label>
+                            <input type="number" name="score" value="{{ $submission->score ?? '' }}" min="0" max="100" step="0.01" style="width: 100%; max-width: 200px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #222;">Feedback</label>
+                            <textarea name="lecturer_feedback" rows="4" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: var(--font);">{{ $submission->lecturer_feedback ?? '' }}</textarea>
+                        </div>
+                        <button type="submit" style="padding: 10px 20px; background: #FF9800; color: white; border: none; border-radius: 6px; font-weight: 500; cursor: pointer;">Save Grade & Feedback</button>
+                    </form>
+                    @if($submission->score !== null)
+                        <div style="margin-top: 15px; padding: 10px; background: #E8F5E9; border-radius: 4px;">
+                            <strong>Current Grade:</strong> {{ $submission->score }} / 100
+                            @if($submission->marked_at)
+                                <br><small style="color: var(--muted);">Marked on: {{ $submission->marked_at->format('M d, Y g:ia') }}</small>
+                            @endif
+                        </div>
+                    @endif
                 </div>
             @endif
 
@@ -431,17 +561,24 @@
                         <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"/>
                     </svg>
                     <h2 class="comments-title">Comments</h2>
+                    @if($submission && $submission->submissionComments->count() >= 2)
+                        <button class="history-btn" onclick="openHistoryModal()">History</button>
+                    @endif
                 </div>
 
                 <div class="comment-list">
                     @if($submission && $submission->submissionComments->count() > 0)
-                        @foreach($submission->submissionComments as $comment)
+                        @php
+                            $latestComments = $submission->submissionComments->take(2);
+                        @endphp
+                        @foreach($latestComments as $comment)
                             <div class="comment-item">
                                 <div class="comment-author">
                                     {{ $comment->user->role === 'lecturer' ? 'Lecturer' : 'You' }}:
                                     {{ $comment->user->name }}
                                 </div>
                                 <div class="comment-text">{{ $comment->comment }}</div>
+                                <div class="comment-time">{{ $comment->created_at->format('M d, Y g:ia') }}</div>
                             </div>
                         @endforeach
                     @else
@@ -465,6 +602,49 @@
                     <div class="comment-item" style="background: #FFF3E0; color: #E65100;">
                         <div class="comment-text">No submission available. Comments can be added once a student submits their assignment.</div>
                     </div>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Comment History</h2>
+                <button class="close" onclick="closeHistoryModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-comment-list">
+                    @if($submission && $submission->submissionComments->count() > 0)
+                        @foreach($submission->submissionComments as $comment)
+                            <div class="modal-comment-item">
+                                <div class="comment-author">
+                                    {{ $comment->user->role === 'lecturer' ? 'Lecturer' : (Auth::user()->id === $comment->user->id ? 'You' : $comment->user->name) }}:
+                                    {{ $comment->user->name }}
+                                </div>
+                                <div class="comment-text">{{ $comment->comment }}</div>
+                                <div class="comment-time">{{ $comment->created_at->format('M d, Y g:ia') }}</div>
+                            </div>
+                        @endforeach
+                    @else
+                        <div class="modal-comment-item">
+                            <div class="comment-text" style="color: var(--muted);">No comments yet. Start the conversation!</div>
+                        </div>
+                    @endif
+                </div>
+            </div>
+            <div class="modal-footer">
+                @if($submission || Auth::user()->role === 'student')
+                    <form action="{{ route('assignment.submission.comment', $assignment->id) }}" method="POST" class="comment-form">
+                        @csrf
+                        <input type="text" name="comment" class="comment-input" placeholder="Write a comment..." required>
+                        <button type="submit" class="comment-submit">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
+                            </svg>
+                        </button>
+                    </form>
                 @endif
             </div>
         </div>
@@ -528,6 +708,41 @@
                 fileInput.files = dt.files;
             };
         }
+
+        // History Modal Functions
+        function openHistoryModal() {
+            document.getElementById('historyModal').style.display = 'block';
+            // Scroll to bottom of modal body
+            const modalBody = document.querySelector('.modal-body');
+            if (modalBody) {
+                setTimeout(() => {
+                    modalBody.scrollTop = modalBody.scrollHeight;
+                }, 100);
+            }
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('historyModal');
+            if (event.target == modal) {
+                closeHistoryModal();
+            }
+        }
+
+        // Auto-scroll to bottom when new comment is added in modal
+        document.addEventListener('DOMContentLoaded', function() {
+            const modalForms = document.querySelectorAll('#historyModal form');
+            modalForms.forEach(form => {
+                form.addEventListener('submit', function() {
+                    // After form submission, the page will reload and show new comment
+                    // This is handled by the server redirect
+                });
+            });
+        });
     </script>
 </body>
 </html>
