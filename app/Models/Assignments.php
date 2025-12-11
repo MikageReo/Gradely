@@ -16,6 +16,8 @@ class Assignments extends Model
         'description',
         'attachment',
         'due_date',
+        'status',
+        'visibility',
     ];
 
     protected $casts = [

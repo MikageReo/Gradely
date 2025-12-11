@@ -33,7 +33,7 @@ class StudentDashboardController extends Controller
                 });
         }
 
-        return response(view('student_dashboard', [
+        return response(view('student.student_dashboard', [
             'pendingAssignments' => $pendingAssignments,
         ]))
             ->header('Cache-Control', 'no-cache, no-store, must-revalidate')

@@ -14,7 +14,7 @@ class AdminUserController extends Controller
         if (auth()->user()->role !== 'admin') {
             abort(403, 'Unauthorized');
         }
-        return view('admin_create_user');
+        return view('admin.admin_create_user');
     }
 
     public function store(Request $request)

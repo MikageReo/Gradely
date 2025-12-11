@@ -2,16 +2,17 @@
 
 use App\Http\Controllers\StudentDashboardController;
 use App\Http\Controllers\SubmissionController;
+use App\Http\Controllers\LecturerController;
 use Illuminate\Support\Facades\Route;
 
 // Ensure root renders the welcome page
 Route::get('/', function () {
-    return view('gradely_welcome_page');
+    return view('index.gradely_welcome_page');
 })->name('home');
 
 // Simple page for login view (GET only)
 Route::get('/login', function () {
-    return view('login');
+    return view('index.login');
 })->name('login');
 
 // Add POST handler for registration form to persist user to database
@@ -21,7 +22,7 @@ Route::get('/login', function () {
 Route::middleware('auth')->group(function () {
         // Profile view and update
         Route::get('/profile', function () {
-            return view('profile');
+            return view('index.profile');
         })->name('profile.view');
 
         Route::post('/profile', function (\Illuminate\Http\Request $request) {
@@ -51,14 +52,14 @@ Route::middleware('auth')->group(function () {
         if (auth()->user()->role !== 'admin') {
             abort(403, 'Unauthorized');
         }
-        return view('new_lecturer_registration');
+        return view('admin.new_lecturer_registration');
     })->name('admin.new_lecturer_registration');
     // Admin: New Student Registration Page
     Route::get('/admin/new-student-registration', function () {
         if (auth()->user()->role !== 'admin') {
             abort(403, 'Unauthorized');
         }
-        return view('new_student_registration');
+        return view('admin.new_student_registration');
     })->name('admin.new_student_registration');
     // Admin: Register Student or Lecturer
     Route::get('/admin/create-user', [\App\Http\Controllers\AdminUserController::class, 'create'])
@@ -71,7 +72,7 @@ Route::middleware('auth')->group(function () {
         if (auth()->user()->role !== 'admin') {
             abort(403, 'Unauthorized');
         }
-        return response(view('admin_dashboard'))
+        return response(view('admin.admin_dashboard'))
             ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
             ->header('Pragma', 'no-cache')
             ->header('Expires', '0');
@@ -82,11 +83,31 @@ Route::middleware('auth')->group(function () {
 
     // Lecturer Dashboard
     Route::get('/dashboard/lecturer', function () {
-        return response(view('lecturer_dashboard'))
+        return response(view('lecturer.lecturer_dashboard'))
             ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
             ->header('Pragma', 'no-cache')
             ->header('Expires', '0');
     })->name('lecturer.dashboard');
+
+    // Lecturer Courses
+    Route::get('/lecturer/courses', [LecturerController::class, 'courses'])
+        ->name('lecturer.courses');
+    
+    Route::get('/lecturer/course/{courseId}', [LecturerController::class, 'showCourse'])
+        ->name('lecturer.course.show');
+
+    // Lecturer Assignment Management
+    Route::post('/lecturer/course/{courseId}/assignment', [LecturerController::class, 'storeAssignment'])
+        ->name('lecturer.assignment.store');
+    
+    Route::put('/lecturer/course/{courseId}/assignment/{assignmentId}', [LecturerController::class, 'updateAssignment'])
+        ->name('lecturer.assignment.update');
+    
+    Route::delete('/lecturer/course/{courseId}/assignment/{assignmentId}', [LecturerController::class, 'deleteAssignment'])
+        ->name('lecturer.assignment.delete');
+    
+    Route::get('/lecturer/course/{courseId}/assignment/{assignmentId}/grading', [LecturerController::class, 'viewGrading'])
+        ->name('lecturer.grading');
 
     // Assignment Submission Routes
     Route::get('/assignment/{assignmentId}/submission', [SubmissionController::class, 'show'])

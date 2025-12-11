@@ -176,7 +176,7 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <h2>GRADELY</h2>
-            <a href="#courses">📚 My Courses</a>
+            <a href="{{ route('lecturer.courses') }}">📚 My Courses</a>
             <a href="#students">👥 Students</a>
             <a href="#grades">📊 Grade Management</a>
             <a href="#assignments">✏️ Assignments</a>
@@ -204,10 +204,12 @@
             </div>
 
             <div class="cards">
-                <div class="card" id="courses">
-                    <h3>📚 My Courses</h3>
-                    <p>Manage your courses, update course materials, and view enrolled students for each course.</p>
-                </div>
+                <a href="{{ route('lecturer.courses') }}" style="text-decoration: none; color: inherit;">
+                    <div class="card" id="courses">
+                        <h3>📚 My Courses</h3>
+                        <p>Manage your courses, update course materials, and view enrolled students for each course.</p>
+                    </div>
+                </a>
                 <div class="card" id="students">
                     <h3>👥 Students</h3>
                     <p>View all students, manage enrollment, track attendance, and monitor student progress.</p>

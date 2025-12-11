@@ -51,7 +51,7 @@ class SubmissionController extends Controller
                 ->first();
         }
 
-        return view('assignment_submission', [
+        return view('student.assignment_submission', [
             'assignment' => $assignment,
             'submission' => $submission,
         ]);
