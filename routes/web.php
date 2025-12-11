@@ -95,6 +95,7 @@ Route::middleware('auth')->group(function () {
         
         // Student Enrollment
         Route::post('/{courseId}/enroll-student', [AdminCourseController::class, 'enrollStudent'])->name('enroll.student');
+        Route::post('/{courseId}/bulk-enroll-student', [AdminCourseController::class, 'bulkEnrollStudent'])->name('bulk.enroll.student');
         Route::delete('/{courseId}/student/{enrollmentId}', [AdminCourseController::class, 'removeStudent'])->name('remove.student');
     });
     // Student Dashboard

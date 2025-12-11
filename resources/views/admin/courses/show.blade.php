@@ -140,7 +140,10 @@
             <div class="section">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h2 class="section-title">Student Enrollments</h2>
-                    <button class="btn btn-primary" onclick="openEnrollmentModal()">+ Enroll Student</button>
+                    <div style="display: flex; gap: 12px;">
+                        <button class="btn btn-primary" onclick="openEnrollmentModal()">+ Enroll Students</button>
+                        <button class="btn btn-secondary" onclick="openBulkEnrollmentModal()">📥 Bulk Enroll (CSV)</button>
+                    </div>
                 </div>
 
                 @php
@@ -229,19 +232,21 @@
             <div id="enrollmentModal" class="modal">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h2 class="modal-title">Enroll Student</h2>
+                        <h2 class="modal-title">Enroll Students</h2>
                         <button class="close" onclick="closeEnrollmentModal()">&times;</button>
                     </div>
                     <form action="{{ route('admin.courses.enroll.student', $course->id) }}" method="POST">
                         @csrf
                         <div class="form-group">
-                            <label class="form-label" for="student_id">Student *</label>
-                            <select class="form-control" id="student_id" name="student_id" required>
-                                <option value="">Select a student</option>
+                            <label class="form-label" for="student_ids">Select Students * (Hold Ctrl/Cmd to select multiple)</label>
+                            <select class="form-control" id="student_ids" name="student_ids[]" multiple required style="height: 200px;">
                                 @foreach($allStudents as $student)
                                     <option value="{{ $student->id }}">{{ $student->name }} ({{ $student->email }})</option>
                                 @endforeach
                             </select>
+                            <small style="color: var(--muted); margin-top: 4px; display: block;">
+                                💡 Hold <strong>Ctrl</strong> (Windows) or <strong>Cmd</strong> (Mac) to select multiple students
+                            </small>
                         </div>
                         <div class="form-group">
                             <label class="form-label" for="course_lecturer_id">Course Section *</label>
@@ -256,8 +261,50 @@
                             </select>
                         </div>
                         <div style="display: flex; gap: 12px; margin-top: 24px;">
-                            <button type="submit" class="btn btn-primary">Enroll</button>
+                            <button type="submit" class="btn btn-primary">Enroll Selected</button>
                             <button type="button" class="btn btn-secondary" onclick="closeEnrollmentModal()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Bulk Enrollment Modal (CSV) -->
+            <div id="bulkEnrollmentModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 class="modal-title">Bulk Enroll Students (CSV)</h2>
+                        <button class="close" onclick="closeBulkEnrollmentModal()">&times;</button>
+                    </div>
+                    <form action="{{ route('admin.courses.bulk.enroll.student', $course->id) }}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        <div class="form-group">
+                            <label class="form-label" for="csv_file">Upload CSV File *</label>
+                            <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv,.txt" required>
+                            <small style="color: var(--muted); margin-top: 4px; display: block;">
+                                <strong>CSV Format:</strong> One student email per line, or comma-separated values.<br>
+                                <strong>Example:</strong><br>
+                                <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 3px;">
+                                    student1@example.com<br>
+                                    student2@example.com<br>
+                                    student3@example.com, student4@example.com
+                                </code>
+                            </small>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="course_lecturer_id_bulk">Course Section *</label>
+                            <select class="form-control" id="course_lecturer_id_bulk" name="course_lecturer_id" required>
+                                <option value="">Select a section</option>
+                                @foreach($course->courseLecturers as $cl)
+                                    <option value="{{ $cl->id }}">
+                                        {{ $cl->lecturer->name }} - {{ $cl->section ?? 'Default' }}
+                                        ({{ $cl->students->count() }}/{{ $cl->capacity > 0 ? $cl->capacity : '∞' }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div style="display: flex; gap: 12px; margin-top: 24px;">
+                            <button type="submit" class="btn btn-primary">Upload & Enroll</button>
+                            <button type="button" class="btn btn-secondary" onclick="closeBulkEnrollmentModal()">Cancel</button>
                         </div>
                     </form>
                 </div>
@@ -278,14 +325,24 @@
         function closeEnrollmentModal() {
             document.getElementById('enrollmentModal').style.display = 'none';
         }
+        function openBulkEnrollmentModal() {
+            document.getElementById('bulkEnrollmentModal').style.display = 'block';
+        }
+        function closeBulkEnrollmentModal() {
+            document.getElementById('bulkEnrollmentModal').style.display = 'none';
+        }
         window.onclick = function(event) {
             const lecturerModal = document.getElementById('lecturerModal');
             const enrollmentModal = document.getElementById('enrollmentModal');
+            const bulkEnrollmentModal = document.getElementById('bulkEnrollmentModal');
             if (event.target == lecturerModal) {
                 lecturerModal.style.display = 'none';
             }
             if (event.target == enrollmentModal) {
                 enrollmentModal.style.display = 'none';
+            }
+            if (event.target == bulkEnrollmentModal) {
+                bulkEnrollmentModal.style.display = 'none';
             }
         }
     </script>

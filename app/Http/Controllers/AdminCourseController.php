@@ -214,7 +214,7 @@ class AdminCourseController extends Controller
     }
 
     /**
-     * Enroll a student in a course section
+     * Enroll a student in a course section (supports single or multiple students)
      */
     public function enrollStudent(Request $request, $courseId)
     {
@@ -223,7 +223,8 @@ class AdminCourseController extends Controller
         }
 
         $data = $request->validate([
-            'student_id' => 'required|exists:users,id',
+            'student_ids' => 'required|array',
+            'student_ids.*' => 'exists:users,id',
             'course_lecturer_id' => 'required|exists:course_lecturer,id',
         ]);
 
@@ -232,27 +233,126 @@ class AdminCourseController extends Controller
             ->where('course_id', $courseId)
             ->firstOrFail();
 
-        // Check if student is already enrolled in this section
-        $exists = CourseStudent::where('student_id', $data['student_id'])
-            ->where('course_lecturer_id', $data['course_lecturer_id'])
-            ->exists();
+        $enrolled = 0;
+        $skipped = 0;
+        $errors = [];
 
-        if ($exists) {
-            return back()->withErrors(['student_id' => 'Student is already enrolled in this course section.']);
+        foreach ($data['student_ids'] as $studentId) {
+            // Verify user is a student
+            $student = User::where('id', $studentId)->where('role', 'student')->first();
+            if (!$student) {
+                $skipped++;
+                continue;
+            }
+
+            // Check if student is already enrolled in this section
+            $exists = CourseStudent::where('student_id', $studentId)
+                ->where('course_lecturer_id', $data['course_lecturer_id'])
+                ->exists();
+
+            if ($exists) {
+                $skipped++;
+                continue;
+            }
+
+            // Check capacity
+            $currentEnrollment = CourseStudent::where('course_lecturer_id', $data['course_lecturer_id'])->count();
+            if ($courseLecturer->capacity > 0 && $currentEnrollment >= $courseLecturer->capacity) {
+                $errors[] = "Capacity reached. Cannot enroll more students.";
+                break;
+            }
+
+            CourseStudent::create([
+                'student_id' => $studentId,
+                'course_lecturer_id' => $data['course_lecturer_id'],
+            ]);
+            $enrolled++;
         }
 
-        // Check capacity
-        $currentEnrollment = CourseStudent::where('course_lecturer_id', $data['course_lecturer_id'])->count();
-        if ($courseLecturer->capacity > 0 && $currentEnrollment >= $courseLecturer->capacity) {
-            return back()->withErrors(['student_id' => 'This course section has reached its capacity.']);
+        $message = "Successfully enrolled {$enrolled} student(s).";
+        if ($skipped > 0) {
+            $message .= " {$skipped} student(s) were skipped (already enrolled or invalid).";
+        }
+        if (!empty($errors)) {
+            return back()->withErrors(['enrollment' => implode(' ', $errors)])->with('partial_success', $message);
         }
 
-        CourseStudent::create([
-            'student_id' => $data['student_id'],
-            'course_lecturer_id' => $data['course_lecturer_id'],
+        return back()->with('success', $message);
+    }
+
+    /**
+     * Bulk enroll students from CSV file
+     */
+    public function bulkEnrollStudent(Request $request, $courseId)
+    {
+        if (Auth::user()->role !== 'admin') {
+            abort(403, 'Unauthorized');
+        }
+
+        $request->validate([
+            'csv_file' => 'required|file|mimes:csv,txt|max:2048',
+            'course_lecturer_id' => 'required|exists:course_lecturer,id',
         ]);
 
-        return back()->with('success', 'Student enrolled successfully!');
+        $courseLecturer = CourseLecturer::where('id', $request->course_lecturer_id)
+            ->where('course_id', $courseId)
+            ->firstOrFail();
+
+        $file = $request->file('csv_file');
+        $lines = file($file->getRealPath(), FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        
+        $enrolled = 0;
+        $skipped = 0;
+        $notFound = [];
+
+        foreach ($lines as $line) {
+            // Handle comma-separated values
+            $emails = array_map('trim', explode(',', $line));
+            
+            foreach ($emails as $email) {
+                if (empty($email)) continue;
+
+                $student = User::where('email', $email)->where('role', 'student')->first();
+                
+                if (!$student) {
+                    $notFound[] = $email;
+                    continue;
+                }
+
+                // Check if already enrolled
+                $exists = CourseStudent::where('student_id', $student->id)
+                    ->where('course_lecturer_id', $courseLecturer->id)
+                    ->exists();
+
+                if ($exists) {
+                    $skipped++;
+                    continue;
+                }
+
+                // Check capacity
+                $currentEnrollment = CourseStudent::where('course_lecturer_id', $courseLecturer->id)->count();
+                if ($courseLecturer->capacity > 0 && $currentEnrollment >= $courseLecturer->capacity) {
+                    break;
+                }
+
+                CourseStudent::create([
+                    'student_id' => $student->id,
+                    'course_lecturer_id' => $courseLecturer->id,
+                ]);
+                $enrolled++;
+            }
+        }
+
+        $message = "Successfully enrolled {$enrolled} student(s).";
+        if ($skipped > 0) {
+            $message .= " {$skipped} already enrolled.";
+        }
+        if (count($notFound) > 0) {
+            $notFoundList = count($notFound) > 5 ? implode(', ', array_slice($notFound, 0, 5)) . ' and ' . (count($notFound) - 5) . ' more' : implode(', ', $notFound);
+            $message .= " " . count($notFound) . " email(s) not found: " . $notFoundList;
+        }
+
+        return back()->with('success', $message);
     }
 
     /**
