@@ -19,6 +19,33 @@ Route::get('/login', function () {
 
 // Protected Dashboard Routes (require authentication)
 Route::middleware('auth')->group(function () {
+        // Profile view and update
+        Route::get('/profile', function () {
+            return view('profile');
+        })->name('profile.view');
+
+        Route::post('/profile', function (\Illuminate\Http\Request $request) {
+            $user = auth()->user();
+            $data = $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+                'password' => 'nullable|string|min:8|confirmed',
+            ]);
+            $user->name = $data['name'];
+            $user->email = $data['email'];
+            if (!empty($data['password'])) {
+                $user->password = \Illuminate\Support\Facades\Hash::make($data['password']);
+            }
+            $user->save();
+            // Redirect to dashboard after update
+            if ($user->role === 'admin') {
+                return redirect()->route('admin.dashboard')->with('success', 'Profile updated successfully!');
+            } elseif ($user->role === 'lecturer') {
+                return redirect()->route('lecturer.dashboard')->with('success', 'Profile updated successfully!');
+            } else {
+                return redirect()->route('student.dashboard')->with('success', 'Profile updated successfully!');
+            }
+        })->name('profile.update');
     // Admin: New Lecturer Registration Page
     Route::get('/admin/new-lecturer-registration', function () {
         if (auth()->user()->role !== 'admin') {

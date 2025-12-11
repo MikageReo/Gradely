@@ -54,6 +54,7 @@
             <h2>GRADELY</h2>
             <a href="{{ route('admin.new_student_registration') }}">👤 Register Student</a>
             <a href="{{ route('admin.new_lecturer_registration') }}">👨‍🏫 Register Lecturer</a>
+            <a href="{{ route('profile.view') }}">👤 Profile</a>
             <a href="{{ url('/logout') }}" class="logout">🚪 Logout</a>
         </aside>
 

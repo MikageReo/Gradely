@@ -181,7 +181,7 @@
             <a href="#grades">📊 Grade Management</a>
             <a href="#assignments">✏️ Assignments</a>
             <a href="#analytics">📈 Analytics</a>
-            <a href="#profile">👤 Profile</a>
+            <a href="{{ route('profile.view') }}">👤 Profile</a>
             <a href="{{ url('/logout') }}" class="logout">🚪 Logout</a>
         </aside>
 
