@@ -83,7 +83,7 @@
                 </div>
                 <div class="card" id="courses">
                     <h3>📚 Manage Courses</h3>
-                    <p>Create, update, or delete courses and assign lecturers.</p>
+                    <p>Create, update, or delete courses and assign lecturers. <a href="{{ route('admin.courses.index') }}" style="color: var(--color-primary); text-decoration: underline;">Manage Courses</a></p>
                 </div>
                 <div class="card" id="assignments">
                     <h3>📝 Manage Assignments</h3>

@@ -9,6 +9,8 @@ use Illuminate\Notifications\Notifiable;
 use App\Models\Courses;
 use App\Models\Submissions;
 use App\Models\SubmissionComments;
+use App\Models\CourseLecturer;
+use App\Models\CourseStudent;
 
 class User extends Authenticatable
 {
@@ -51,19 +53,44 @@ class User extends Authenticatable
     }
 
     /**
-     * Get courses where user is the lecturer
+     * Get course lecturer assignments (sections) where user is the lecturer
      */
-    public function lecturerCourses()
+    public function lecturerCourseSections()
     {
-        return $this->hasMany(Courses::class, 'lecturer_id');
+        return $this->hasMany(CourseLecturer::class, 'lecturer_id');
     }
 
     /**
-     * Get courses where user is enrolled as a student
+     * Get courses where user is the lecturer (through course_lecturer)
+     */
+    public function lecturerCourses()
+    {
+        return $this->belongsToMany(Courses::class, 'course_lecturer', 'lecturer_id', 'course_id')
+            ->withPivot('section', 'capacity')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get course student enrollments (sections) where user is enrolled as a student
+     */
+    public function studentCourseSections()
+    {
+        return $this->hasMany(CourseStudent::class, 'student_id');
+    }
+
+    /**
+     * Get courses where user is enrolled as a student (through course_lecturer -> course_student)
      */
     public function studentCourses()
     {
-        return $this->belongsToMany(Courses::class, 'course_student', 'student_id', 'course_id');
+        $courseLecturerIds = CourseStudent::where('student_id', $this->id)
+            ->pluck('course_lecturer_id');
+        
+        $courseIds = CourseLecturer::whereIn('id', $courseLecturerIds)
+            ->pluck('course_id')
+            ->unique();
+        
+        return Courses::whereIn('id', $courseIds);
     }
 
     /**

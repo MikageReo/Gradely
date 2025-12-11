@@ -6,6 +6,8 @@ use App\Models\Assignments;
 use App\Models\Submissions;
 use App\Models\SubmissionFile;
 use App\Models\SubmissionComments;
+use App\Models\CourseLecturer;
+use App\Models\CourseStudent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
@@ -25,7 +27,11 @@ class SubmissionController extends Controller
 
         // Check permissions
         if ($user->role === 'student') {
-            $courseIds = $user->studentCourses()->pluck('courses.id');
+            $courseLecturerIds = CourseStudent::where('student_id', $user->id)
+                ->pluck('course_lecturer_id');
+            $courseIds = CourseLecturer::whereIn('id', $courseLecturerIds)
+                ->pluck('course_id')
+                ->unique();
             if (!$courseIds->contains($assignment->course_id)) {
                 abort(403, 'You are not enrolled in this course.');
             }
@@ -77,7 +83,11 @@ class SubmissionController extends Controller
 
         // Check permissions
         if ($user->role === 'student') {
-            $courseIds = $user->studentCourses()->pluck('courses.id');
+            $courseLecturerIds = CourseStudent::where('student_id', $user->id)
+                ->pluck('course_lecturer_id');
+            $courseIds = CourseLecturer::whereIn('id', $courseLecturerIds)
+                ->pluck('course_id')
+                ->unique();
             if (!$courseIds->contains($assignment->course_id)) {
                 abort(403, 'You are not enrolled in this course.');
             }

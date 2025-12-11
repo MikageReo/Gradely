@@ -3,6 +3,7 @@
 use App\Http\Controllers\StudentDashboardController;
 use App\Http\Controllers\SubmissionController;
 use App\Http\Controllers\LecturerController;
+use App\Http\Controllers\AdminCourseController;
 use Illuminate\Support\Facades\Route;
 
 // Ensure root renders the welcome page
@@ -77,9 +78,32 @@ Route::middleware('auth')->group(function () {
             ->header('Pragma', 'no-cache')
             ->header('Expires', '0');
     })->name('admin.dashboard');
+
+    // Admin Course Management
+    Route::prefix('admin/courses')->name('admin.courses.')->group(function () {
+        Route::get('/', [AdminCourseController::class, 'index'])->name('index');
+        Route::get('/create', [AdminCourseController::class, 'create'])->name('create');
+        Route::post('/', [AdminCourseController::class, 'store'])->name('store');
+        Route::get('/{courseId}', [AdminCourseController::class, 'show'])->name('show');
+        Route::get('/{courseId}/edit', [AdminCourseController::class, 'edit'])->name('edit');
+        Route::put('/{courseId}', [AdminCourseController::class, 'update'])->name('update');
+        Route::delete('/{courseId}', [AdminCourseController::class, 'destroy'])->name('destroy');
+        
+        // Lecturer Assignment
+        Route::post('/{courseId}/assign-lecturer', [AdminCourseController::class, 'assignLecturer'])->name('assign.lecturer');
+        Route::delete('/{courseId}/lecturer/{courseLecturerId}', [AdminCourseController::class, 'removeLecturer'])->name('remove.lecturer');
+        
+        // Student Enrollment
+        Route::post('/{courseId}/enroll-student', [AdminCourseController::class, 'enrollStudent'])->name('enroll.student');
+        Route::delete('/{courseId}/student/{enrollmentId}', [AdminCourseController::class, 'removeStudent'])->name('remove.student');
+    });
     // Student Dashboard
     Route::get('/dashboard/student', [StudentDashboardController::class, 'index'])
         ->name('student.dashboard');
+    
+    // Student Course Detail
+    Route::get('/student/course/{courseId}', [StudentDashboardController::class, 'showCourse'])
+        ->name('student.course.show');
 
     // Lecturer Dashboard
     Route::get('/dashboard/lecturer', function () {
