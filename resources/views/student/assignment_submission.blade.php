@@ -578,9 +578,53 @@
                     @if($submission->score !== null)
                         <div style="margin-top: 15px; padding: 10px; background: #E8F5E9; border-radius: 4px;">
                             <strong>Current Grade:</strong> {{ $submission->score }} / 100
+                            @if($submission->grade)
+                                <strong style="margin-left: 15px;">Letter Grade:</strong> <span style="font-size: 18px; font-weight: bold; color: var(--color-primary);">{{ $submission->grade }}</span>
+                            @endif
                             @if($submission->marked_at)
                                 <br><small style="color: var(--muted);">Marked on: {{ $submission->marked_at->format('M d, Y g:ia') }}</small>
                             @endif
+                        </div>
+                    @endif
+                </div>
+            @endif
+
+            @if(Auth::user()->role === 'student' && $submission && $submission->status === 'marked')
+                <div style="margin-top: 30px; padding: 20px; background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); border-radius: 8px; border: 2px solid #4CAF50;">
+                    <h3 style="margin-bottom: 15px; color: #2E7D32; font-size: 20px; display: flex; align-items: center; gap: 10px;">
+                        <svg width="24" height="24" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        Your Grade
+                    </h3>
+                    <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+                        <div style="padding: 15px; background: white; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            <div style="font-size: 14px; color: var(--muted); margin-bottom: 5px;">Score</div>
+                            <div style="font-size: 28px; font-weight: bold; color: #2E7D32;">
+                                {{ $submission->score ?? 'N/A' }} / 100
+                            </div>
+                        </div>
+                        @if($submission->grade)
+                        <div style="padding: 15px; background: white; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            <div style="font-size: 14px; color: var(--muted); margin-bottom: 5px;">Letter Grade</div>
+                            <div style="font-size: 36px; font-weight: bold; color: var(--color-primary);">
+                                {{ $submission->grade }}
+                            </div>
+                        </div>
+                        @endif
+                    </div>
+                    @if($submission->marked_at)
+                        <div style="margin-top: 15px; font-size: 14px; color: var(--muted);">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20" style="vertical-align: middle; margin-right: 5px;">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                            </svg>
+                            Marked on: {{ $submission->marked_at->format('M d, Y g:ia') }}
+                        </div>
+                    @endif
+                    @if($submission->lecturer_feedback)
+                        <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 6px; border-left: 4px solid var(--color-primary);">
+                            <div style="font-weight: 600; margin-bottom: 8px; color: #222;">Lecturer Feedback:</div>
+                            <div style="color: #333; line-height: 1.6; white-space: pre-wrap;">{{ $submission->lecturer_feedback }}</div>
                         </div>
                     @endif
                 </div>

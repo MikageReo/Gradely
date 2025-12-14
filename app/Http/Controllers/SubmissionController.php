@@ -46,7 +46,7 @@ class SubmissionController extends Controller
         // For students: get their own submission
         // For lecturers: get the first submission (or we could add student_id parameter later)
         if ($user->role === 'student') {
-            $submission = Submissions::with(['submissionFiles', 'submissionComments' => function($query) {
+            $submission = Submissions::with(['submissionFiles', 'submissionComments' => function ($query) {
                 $query->orderBy('created_at', 'desc')->with('user');
             }])
                 ->where('assignment_id', $assignmentId)
@@ -55,7 +55,7 @@ class SubmissionController extends Controller
         } else {
             // For lecturers, get the first submission for this assignment
             // In a full implementation, you might want to add a student_id parameter
-            $submission = Submissions::with(['submissionFiles', 'submissionComments' => function($query) {
+            $submission = Submissions::with(['submissionFiles', 'submissionComments' => function ($query) {
                 $query->orderBy('created_at', 'desc')->with('user');
             }, 'student'])
                 ->where('assignment_id', $assignmentId)
@@ -137,12 +137,12 @@ class SubmissionController extends Controller
             // Get file info BEFORE moving the file
             $fileSize = $file->getSize();
             $fileType = $file->getClientMimeType();
-            
+
             // Handle duplicate filenames by adding timestamp
             $fileName = pathinfo($originalName, PATHINFO_FILENAME);
             $extension = pathinfo($originalName, PATHINFO_EXTENSION);
             $uniqueName = $fileName . '_' . time() . '_' . uniqid() . '.' . $extension;
-            
+
             // Move file to public folder
             $file->move($publicPath, $uniqueName);
             $relativePath = 'submissions/' . $submission->id . '/' . $uniqueName;
@@ -231,6 +231,7 @@ class SubmissionController extends Controller
             ->firstOrFail();
 
         $submission->score = $request->score;
+        $submission->grade = $this->calculateGrade($request->score);
         $submission->lecturer_feedback = $request->lecturer_feedback;
         $submission->status = 'marked';
         $submission->marked_at = now();
@@ -239,5 +240,29 @@ class SubmissionController extends Controller
         return redirect()->route('assignment.submission', $assignmentId)
             ->with('success', 'Grade and feedback updated successfully!');
     }
-}
 
+    /**
+     * Calculate grade letter based on score
+     *
+     * @param float|null $score
+     * @return string|null
+     */
+    private function calculateGrade($score)
+    {
+        if ($score === null) {
+            return null;
+        }
+
+        if ($score >= 80 && $score <= 100) {
+            return 'A';
+        } elseif ($score >= 70 && $score <= 79) {
+            return 'B';
+        } elseif ($score >= 60 && $score <= 69) {
+            return 'C';
+        } elseif ($score >= 50 && $score <= 59) {
+            return 'D';
+        } else {
+            return 'F';
+        }
+    }
+}

@@ -235,6 +235,110 @@
                 </div>
             </div>
 
+            <!-- Performance Section -->
+            @php
+                $perf = $performance ?? [];
+                $totalAssignments = $perf['total_assignments'] ?? 0;
+                $submittedCount = $perf['submitted_count'] ?? 0;
+                $gradedCount = $perf['graded_count'] ?? 0;
+                $averageScore = $perf['average_score'] ?? null;
+                $averageGrade = $perf['average_grade'] ?? null;
+                $completionPercentage = $perf['completion_percentage'] ?? 0;
+                $perfLevel = $perf['performance_level'] ?? [];
+                $hasGrades = $perf['has_grades'] ?? false;
+            @endphp
+            <div class="section" style="border-left: 4px solid {{ $perfLevel['color'] ?? '#1976D2' }};">
+                <h2 class="section-title">📊 Course Performance</h2>
+                
+                <!-- Overall Performance Score Card -->
+                @if($hasGrades && $averageScore !== null)
+                    <div style="background: {{ $perfLevel['bg_color'] ?? '#F5F5F5' }}; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
+                            <div>
+                                <div style="font-size: 13px; color: {{ $perfLevel['text_color'] ?? '#757575' }}; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Average Performance</div>
+                                <div style="display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px;">
+                                    <span style="font-size: 48px; font-weight: 700; color: {{ $perfLevel['color'] ?? '#1976D2' }};">{{ $averageScore }}</span>
+                                    <span style="font-size: 20px; color: var(--muted);">/ 100</span>
+                                    @if($averageGrade)
+                                        <span style="font-size: 36px; font-weight: 700; color: {{ $perfLevel['color'] ?? '#1976D2' }}; margin-left: 8px;">({{ $averageGrade }})</span>
+                                    @endif
+                                </div>
+                                <div style="font-size: 16px; font-weight: 600; color: {{ $perfLevel['text_color'] ?? '#757575' }};">{{ $perfLevel['level'] ?? 'No grades yet' }}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 13px; color: {{ $perfLevel['text_color'] ?? '#757575' }}; margin-bottom: 4px;">Assignments Graded</div>
+                                <div style="font-size: 32px; font-weight: 700; color: {{ $perfLevel['color'] ?? '#1976D2' }};">{{ $gradedCount }}</div>
+                                <div style="font-size: 14px; color: var(--muted);">of {{ $totalAssignments }} total</div>
+                            </div>
+                        </div>
+                    </div>
+                @else
+                    <div style="background: #F5F5F5; border-radius: 12px; padding: 24px; margin-bottom: 24px; text-align: center;">
+                        <div style="font-size: 16px; color: var(--muted); margin-bottom: 8px;">No grades available yet</div>
+                        <div style="font-size: 14px; color: var(--muted);">Complete assignments and wait for grading to see your performance metrics</div>
+                    </div>
+                @endif
+
+                <!-- Completion Progress Bar -->
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 14px; font-weight: 600; color: #222;">Completion Progress</span>
+                        <span style="font-size: 14px; font-weight: 600; color: var(--color-primary);">{{ $completionPercentage }}%</span>
+                    </div>
+                    <div style="width: 100%; height: 12px; background: #E0E0E0; border-radius: 6px; overflow: hidden; margin-bottom: 8px;">
+                        <div style="width: {{ $completionPercentage }}%; height: 100%; background: linear-gradient(90deg, var(--color-primary) 0%, #42A5F5 100%); border-radius: 6px; transition: width 0.3s ease;"></div>
+                    </div>
+                    <div style="font-size: 13px; color: var(--muted);">
+                        <strong>{{ $submittedCount }}</strong> of <strong>{{ $totalAssignments }}</strong> assignments submitted
+                        @if($gradedCount > 0)
+                            • <strong>{{ $gradedCount }}</strong> graded
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Performance Level Indicator -->
+                @if($hasGrades && $averageScore !== null)
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-size: 14px; font-weight: 600; color: #222;">Performance Level</span>
+                        </div>
+                        <div style="width: 100%; height: 10px; background: #E0E0E0; border-radius: 5px; overflow: hidden; position: relative; margin-bottom: 8px;">
+                            <!-- Grade ranges background -->
+                            <div style="position: absolute; width: 100%; height: 100%; display: flex;">
+                                <div style="flex: 1; background: #F44336;"></div>
+                                <div style="flex: 1; background: #FF9800;"></div>
+                                <div style="flex: 1; background: #FFC107;"></div>
+                                <div style="flex: 1; background: #2196F3;"></div>
+                                <div style="flex: 1; background: #4CAF50;"></div>
+                            </div>
+                            <!-- Current performance indicator -->
+                            @php
+                                $scorePercent = min(100, max(0, $averageScore));
+                                $indicatorPosition = ($scorePercent / 100) * 100;
+                            @endphp
+                            <div style="position: absolute; left: {{ $indicatorPosition }}%; top: -3px; width: 16px; height: 16px; background: {{ $perfLevel['color'] ?? '#1976D2' }}; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transform: translateX(-50%); border: 3px solid white;"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 4px;">
+                            <div style="text-align: center; flex: 1;">
+                                <span style="font-size: 12px; color: var(--muted);">F (0-49)</span>
+                            </div>
+                            <div style="text-align: center; flex: 1;">
+                                <span style="font-size: 12px; color: var(--muted);">D (50-59)</span>
+                            </div>
+                            <div style="text-align: center; flex: 1;">
+                                <span style="font-size: 12px; color: var(--muted);">C (60-69)</span>
+                            </div>
+                            <div style="text-align: center; flex: 1;">
+                                <span style="font-size: 12px; color: var(--muted);">B (70-79)</span>
+                            </div>
+                            <div style="text-align: center; flex: 1;">
+                                <span style="font-size: 12px; color: var(--muted);">A (80-100)</span>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            </div>
+
             <div class="section">
                 <h2 class="section-title">Assignments</h2>
                 @if($assignments->count() > 0)
@@ -280,6 +384,9 @@
                                         <td>
                                             @if($assignment->score !== null)
                                                 <strong>{{ $assignment->score }} / 100</strong>
+                                                @if($assignment->grade)
+                                                    <span style="font-weight: 600; color: var(--color-primary); margin-left: 8px;">({{ $assignment->grade }})</span>
+                                                @endif
                                             @else
                                                 <span style="color: var(--muted);">-</span>
                                             @endif

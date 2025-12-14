@@ -289,6 +289,55 @@
                 </div>
             </div>
 
+            <!-- Overall Performance Summary -->
+            @php
+                $allPerformance = $courses->map(fn($c) => $c->performance)->filter();
+                $overallAvgScore = $allPerformance->where('has_grades', true)->pluck('average_score')->filter()->avg();
+                $totalGraded = $allPerformance->sum('graded_count');
+                $totalSubmitted = $allPerformance->sum('submitted_count');
+                $totalAssignments = $allPerformance->sum('total_assignments');
+                $overallCompletion = $totalAssignments > 0 ? round(($totalSubmitted / $totalAssignments) * 100) : 0;
+                $overallGrade = null;
+                if ($overallAvgScore !== null) {
+                    if ($overallAvgScore >= 80) $overallGrade = 'A';
+                    elseif ($overallAvgScore >= 70) $overallGrade = 'B';
+                    elseif ($overallAvgScore >= 60) $overallGrade = 'C';
+                    elseif ($overallAvgScore >= 50) $overallGrade = 'D';
+                    else $overallGrade = 'F';
+                }
+            @endphp
+            @if($courses->count() > 0 && $overallAvgScore !== null)
+                <div class="card" id="progress" style="margin-bottom: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+                        <div>
+                            <h3 style="color: white; margin-bottom: 8px; font-size: 18px;">📈 Overall Performance</h3>
+                            <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin: 0;">Your academic performance across all courses</p>
+                        </div>
+                        <div style="display: flex; align-items: baseline; gap: 8px;">
+                            <span style="font-size: 42px; font-weight: 700; color: white;">{{ round($overallAvgScore, 1) }}</span>
+                            <span style="font-size: 20px; color: rgba(255,255,255,0.8);">/ 100</span>
+                            @if($overallGrade)
+                                <span style="font-size: 32px; font-weight: 700; color: white; margin-left: 8px;">({{ $overallGrade }})</span>
+                            @endif
+                        </div>
+                    </div>
+                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2); display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px;">
+                        <div>
+                            <div style="font-size: 12px; color: rgba(255,255,255,0.8); margin-bottom: 4px;">Completion Rate</div>
+                            <div style="font-size: 24px; font-weight: 700;">{{ $overallCompletion }}%</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: rgba(255,255,255,0.8); margin-bottom: 4px;">Assignments Graded</div>
+                            <div style="font-size: 24px; font-weight: 700;">{{ $totalGraded }}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: rgba(255,255,255,0.8); margin-bottom: 4px;">Total Assignments</div>
+                            <div style="font-size: 24px; font-weight: 700;">{{ $totalAssignments }}</div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <div class="card assignments-card">
                 <div class="assignments-meta">
                     <div>
@@ -357,8 +406,6 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
                         @foreach($courses as $index => $course)
                             @php
-                                $patterns = ['pattern-purple', 'pattern-blue', 'pattern-teal', 'pattern-green', 'pattern-orange', 'pattern-red'];
-                                $patternClass = $patterns[$index % count($patterns)];
                                 // Calculate progress based on assignments
                                 $totalAssignments = $course->assignments_count ?? 0;
                                 $submittedCount = \App\Models\Submissions::whereIn('assignment_id', $course->assignments()->pluck('id'))
@@ -394,10 +441,13 @@
                     <h3>📊 Grades</h3>
                     <p>Track your academic performance. View your grades for all assessments, assignments, and exams.</p>
                 </div>
+                @if($courses->count() > 0 && ($overallAvgScore ?? null) === null)
                 <div class="card" id="progress">
                     <h3>📈 Progress</h3>
                     <p>Monitor your overall academic progress and see personalized recommendations for improvement.</p>
+                    <p style="margin-top: 10px; font-size: 13px; color: var(--muted);">Start submitting assignments to see your performance metrics!</p>
                 </div>
+                @endif
             </div>
         </main>
     </div>
