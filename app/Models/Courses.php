@@ -12,31 +12,39 @@ class Courses extends Model
     protected $fillable = [
         'course_code',
         'course_name',
-        'lecturer_id',
     ];
 
     /**
-     * Get the lecturer (user) who owns this course
+     * Get all lecturers teaching this course (through course_lecturer)
      */
-    public function lecturer()
+    public function courseLecturers()
     {
-        return $this->belongsTo(User::class, 'lecturer_id');
+        return $this->hasMany(CourseLecturer::class, 'course_id');
     }
 
     /**
-     * Get all students enrolled in this course
+     * Get all lecturers (users) teaching this course
      */
-    public function courseStudents()
+    public function lecturers()
     {
-        return $this->hasMany(CourseStudent::class, 'course_id');
+        return $this->belongsToMany(User::class, 'course_lecturer', 'course_id', 'lecturer_id')
+            ->withPivot('section', 'capacity')
+            ->withTimestamps();
     }
 
     /**
-     * Get all students enrolled in this course (many-to-many relationship)
+     * Get all students enrolled in this course (through course_lecturer -> course_student)
      */
     public function students()
     {
-        return $this->belongsToMany(User::class, 'course_student', 'course_id', 'student_id');
+        return $this->hasManyThrough(
+            User::class,
+            CourseStudent::class,
+            'course_lecturer_id', // Foreign key on course_student table
+            'id', // Foreign key on users table
+            'id', // Local key on courses table
+            'student_id' // Local key on course_student table
+        )->distinct();
     }
 
     /**

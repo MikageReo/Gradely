@@ -23,9 +23,12 @@ class LecturerController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        $courses = Courses::where('lecturer_id', $user->id)
-            ->withCount(['assignments', 'students'])
-            ->get();
+        // Get courses through course_lecturer
+        $courses = Courses::whereHas('courseLecturers', function($query) use ($user) {
+            $query->where('lecturer_id', $user->id);
+        })
+        ->withCount(['assignments'])
+        ->get();
 
         return view('lecturer.courses', [
             'courses' => $courses,
@@ -43,9 +46,12 @@ class LecturerController extends Controller
             abort(403, 'Unauthorized');
         }
 
+        // Verify course belongs to lecturer through course_lecturer
         $course = Courses::where('id', $courseId)
-            ->where('lecturer_id', $user->id)
-            ->with(['assignments', 'students'])
+            ->whereHas('courseLecturers', function($query) use ($user) {
+                $query->where('lecturer_id', $user->id);
+            })
+            ->with(['assignments', 'courseLecturers.students.student'])
             ->firstOrFail();
 
         $assignments = Assignments::where('course_id', $courseId)
@@ -53,8 +59,11 @@ class LecturerController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Calculate analytics
-        $totalStudents = $course->students->count();
+        // Calculate analytics - get students from all course_lecturer sections
+        $totalStudents = 0;
+        foreach ($course->courseLecturers as $courseLecturer) {
+            $totalStudents += $courseLecturer->students->count();
+        }
         $totalSubmissions = Submissions::whereIn('assignment_id', $assignments->pluck('id'))->count();
         $pendingGrading = Submissions::whereIn('assignment_id', $assignments->pluck('id'))
             ->whereNull('score')
@@ -84,9 +93,11 @@ class LecturerController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        // Verify course belongs to lecturer
+        // Verify course belongs to lecturer through course_lecturer
         $course = Courses::where('id', $courseId)
-            ->where('lecturer_id', $user->id)
+            ->whereHas('courseLecturers', function($query) use ($user) {
+                $query->where('lecturer_id', $user->id);
+            })
             ->firstOrFail();
 
         $data = $request->validate([
@@ -139,9 +150,11 @@ class LecturerController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        // Verify course belongs to lecturer
+        // Verify course belongs to lecturer through course_lecturer
         $course = Courses::where('id', $courseId)
-            ->where('lecturer_id', $user->id)
+            ->whereHas('courseLecturers', function($query) use ($user) {
+                $query->where('lecturer_id', $user->id);
+            })
             ->firstOrFail();
 
         $assignment = Assignments::where('id', $assignmentId)
@@ -207,9 +220,11 @@ class LecturerController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        // Verify course belongs to lecturer
+        // Verify course belongs to lecturer through course_lecturer
         $course = Courses::where('id', $courseId)
-            ->where('lecturer_id', $user->id)
+            ->whereHas('courseLecturers', function($query) use ($user) {
+                $query->where('lecturer_id', $user->id);
+            })
             ->firstOrFail();
 
         $assignment = Assignments::where('id', $assignmentId)
@@ -242,9 +257,11 @@ class LecturerController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        // Verify course belongs to lecturer
+        // Verify course belongs to lecturer through course_lecturer
         $course = Courses::where('id', $courseId)
-            ->where('lecturer_id', $user->id)
+            ->whereHas('courseLecturers', function($query) use ($user) {
+                $query->where('lecturer_id', $user->id);
+            })
             ->firstOrFail();
 
         $assignment = Assignments::where('id', $assignmentId)

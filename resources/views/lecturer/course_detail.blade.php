@@ -422,7 +422,7 @@
                 <div class="course-info">
                     <div class="info-item">
                         <span>👥</span>
-                        <span>{{ $course->students->count() }} Students</span>
+                        <span>{{ $totalStudents }} Students</span>
                     </div>
                     <div class="info-item">
                         <span>📝</span>

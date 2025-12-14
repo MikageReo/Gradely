@@ -260,7 +260,7 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <h2>GRADELY</h2>
-            <a href="#courses">📚 Courses</a>
+            <a href="#courses" onclick="document.getElementById('courses').scrollIntoView({behavior: 'smooth'}); return false;">📚 Courses</a>
             <a href="#grades">📊 Grades</a>
             <a href="#assignments">✏️ Assignments</a>
             <a href="#progress">📈 Progress</a>
@@ -343,18 +343,56 @@
                 @endif
             </div>
 
-            <div class="cards">
-                <div class="card" id="courses">
-                    <h3>📚 Courses</h3>
-                    <p>You are currently enrolled in 3 courses. View your courses, lecture materials, and course schedule here.</p>
+            <!-- My Courses Section -->
+            <div class="card" id="courses" style="margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div>
+                        <p style="color: var(--muted); font-size: 13px; margin-bottom: 4px;">Enrolled courses</p>
+                        <h3 style="margin: 0; color: var(--color-primary);">My Courses</h3>
+                    </div>
+                    <span class="pill-count">{{ $courses->count() }} courses</span>
                 </div>
+
+                @if($courses->count() > 0)
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
+                        @foreach($courses as $index => $course)
+                            @php
+                                $patterns = ['pattern-purple', 'pattern-blue', 'pattern-teal', 'pattern-green', 'pattern-orange', 'pattern-red'];
+                                $patternClass = $patterns[$index % count($patterns)];
+                                // Calculate progress based on assignments
+                                $totalAssignments = $course->assignments_count ?? 0;
+                                $submittedCount = \App\Models\Submissions::whereIn('assignment_id', $course->assignments()->pluck('id'))
+                                    ->where('student_id', Auth::id())
+                                    ->count();
+                                $progress = $totalAssignments > 0 ? min(100, round(($submittedCount / $totalAssignments) * 100)) : 0;
+                            @endphp
+                            <a href="{{ route('student.course.show', $course->id) }}" style="text-decoration: none; color: inherit;">
+                                <div style="background: var(--white); border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; height: 200px; display: flex; flex-direction: column;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 4px 16px rgba(0,0,0,0.12)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">
+                                    <div style="height: 120px; position: relative; background: linear-gradient(135deg, var(--color-primary) 0%, #1565C0 100%); display: flex; align-items: center; justify-content: center;">
+                                        <div style="position: relative; z-index: 1; font-size: 24px; font-weight: 700; color: var(--white); text-shadow: 0 2px 4px rgba(0,0,0,0.3);">{{ $course->course_code }}</div>
+                                    </div>
+                                    <div style="padding: 16px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                                        <div>
+                                            <div style="font-size: 16px; font-weight: 600; color: var(--color-primary); margin-bottom: 4px; line-height: 1.4;">{{ strtoupper($course->course_name) }}</div>
+                                            <div style="font-size: 13px; color: var(--muted); margin-bottom: 8px;">FACULTY OF COMPUTING</div>
+                                        </div>
+                                        <div style="font-size: 13px; color: var(--muted);">{{ $progress }}% complete</div>
+                                    </div>
+                                </div>
+                            </a>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="empty-state">
+                        <p>You are not enrolled in any courses yet.</p>
+                    </div>
+                @endif
+            </div>
+
+            <div class="cards" style="margin-top: 20px;">
                 <div class="card" id="grades">
                     <h3>📊 Grades</h3>
                     <p>Track your academic performance. View your grades for all assessments, assignments, and exams.</p>
-                </div>
-                <div class="card" id="assignments">
-                    <h3>✏️ Assignments</h3>
-                    <p>View pending and submitted assignments. Keep track of deadlines and submission status.</p>
                 </div>
                 <div class="card" id="progress">
                     <h3>📈 Progress</h3>

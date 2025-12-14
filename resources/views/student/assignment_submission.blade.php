@@ -405,6 +405,45 @@
         .submitted-file-item a:hover {
             text-decoration: underline;
         }
+        .assignment-files {
+            margin-top: 20px;
+            padding: 15px;
+            background: #E3F2FD;
+            border-radius: 6px;
+            border: 1px solid #BBDEFB;
+        }
+        .assignment-files-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #1565C0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .assignment-file-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--white);
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        .assignment-file-item a {
+            margin-left: auto;
+            color: var(--color-primary);
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 500;
+            padding: 4px 12px;
+            background: #E3F2FD;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        .assignment-file-item a:hover {
+            background: #BBDEFB;
+            text-decoration: none;
+        }
         @media (max-width: 768px) {
             .assignment-info {
                 grid-template-columns: 1fr;
@@ -478,6 +517,29 @@
                     @endif
                 </div>
             </div>
+
+            @if($assignment->attachment)
+                <div class="assignment-files">
+                    <div class="assignment-files-title">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+                        </svg>
+                        Assignment Files:
+                    </div>
+                    <div class="assignment-file-item">
+                        <span>📎</span>
+                        <span>{{ basename($assignment->attachment) }}</span>
+                        <a href="{{ url('/') }}/{{ $assignment->attachment }}" target="_blank">View/Download</a>
+                    </div>
+                </div>
+            @endif
+
+            @if($assignment->description)
+                <div style="margin-top: 20px; padding: 15px; background: #F5F5F5; border-radius: 6px;">
+                    <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 10px; color: #222;">Description</h3>
+                    <p style="color: #333; line-height: 1.6; white-space: pre-wrap;">{{ $assignment->description }}</p>
+                </div>
+            @endif
 
             @if($submission && $submission->submissionFiles->count() > 0)
                 <div class="submitted-files">
