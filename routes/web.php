@@ -68,6 +68,12 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/admin/store-user', [\App\Http\Controllers\AdminUserController::class, 'store'])
         ->name('admin.store_user');
+    
+    Route::post('/admin/bulk-register', [\App\Http\Controllers\AdminUserController::class, 'bulkRegister'])
+        ->name('admin.bulk_register');
+    
+    Route::get('/admin/download-template', [\App\Http\Controllers\AdminUserController::class, 'downloadTemplate'])
+        ->name('admin.download_template');
     // Admin Dashboard
     Route::get('/dashboard/admin', function () {
         if (auth()->user()->role !== 'admin') {
@@ -96,6 +102,7 @@ Route::middleware('auth')->group(function () {
         // Student Enrollment
         Route::post('/{courseId}/enroll-student', [AdminCourseController::class, 'enrollStudent'])->name('enroll.student');
         Route::post('/{courseId}/bulk-enroll-student', [AdminCourseController::class, 'bulkEnrollStudent'])->name('bulk.enroll.student');
+        Route::get('/download-enrollment-template', [AdminCourseController::class, 'downloadEnrollmentTemplate'])->name('download.enrollment_template');
         Route::delete('/{courseId}/student/{enrollmentId}', [AdminCourseController::class, 'removeStudent'])->name('remove.student');
     });
     // Student Dashboard

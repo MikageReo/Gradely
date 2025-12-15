@@ -400,4 +400,32 @@ class AdminCourseController extends Controller
 
         return back()->with('success', 'Student enrollment removed successfully!');
     }
+
+    /**
+     * Download CSV template for bulk student enrollment
+     */
+    public function downloadEnrollmentTemplate()
+    {
+        if (Auth::user()->role !== 'admin') {
+            abort(403, 'Unauthorized');
+        }
+
+        $filename = 'student_enrollment_template.csv';
+        
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $callback = function() {
+            $file = fopen('php://output', 'w');
+            
+            // Add header row only
+            fputcsv($file, ['Email']);
+            
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
 }
