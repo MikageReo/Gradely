@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use App\Mail\CourseEnrolledMail;
+use Illuminate\Support\Str;
 
 class AdminCourseController extends Controller
 {
@@ -404,13 +405,14 @@ class AdminCourseController extends Controller
     /**
      * Download CSV template for bulk student enrollment
      */
-    public function downloadEnrollmentTemplate()
+    public function downloadEnrollmentTemplate($courseId)
     {
         if (Auth::user()->role !== 'admin') {
             abort(403, 'Unauthorized');
         }
 
-        $filename = 'student_enrollment_template.csv';
+        $course = Courses::findOrFail($courseId);
+        $filename = 'student_enrollment_template_' . Str::slug($course->course_code) . '.csv';
         
         $headers = [
             'Content-Type' => 'text/csv',
