@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to {{ config('app.name') }}</title>
+    <title>Welcome to Gradely</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -84,7 +84,7 @@
 <body>
     <div class="email-container">
         <div class="header">
-            <h1>Welcome to {{ config('app.name') }}!</h1>
+            <h1>Welcome to Gradely!</h1>
         </div>
         
         <div class="content">

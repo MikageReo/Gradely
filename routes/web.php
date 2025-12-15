@@ -102,7 +102,7 @@ Route::middleware('auth')->group(function () {
         // Student Enrollment
         Route::post('/{courseId}/enroll-student', [AdminCourseController::class, 'enrollStudent'])->name('enroll.student');
         Route::post('/{courseId}/bulk-enroll-student', [AdminCourseController::class, 'bulkEnrollStudent'])->name('bulk.enroll.student');
-        Route::get('/download-enrollment-template', [AdminCourseController::class, 'downloadEnrollmentTemplate'])->name('download.enrollment_template');
+        Route::get('/{courseId}/download-enrollment-template', [AdminCourseController::class, 'downloadEnrollmentTemplate'])->name('download.enrollment_template');
         Route::delete('/{courseId}/student/{enrollmentId}', [AdminCourseController::class, 'removeStudent'])->name('remove.student');
     });
     // Student Dashboard
@@ -114,12 +114,8 @@ Route::middleware('auth')->group(function () {
         ->name('student.course.show');
 
     // Lecturer Dashboard
-    Route::get('/dashboard/lecturer', function () {
-        return response(view('lecturer.lecturer_dashboard'))
-            ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
-            ->header('Pragma', 'no-cache')
-            ->header('Expires', '0');
-    })->name('lecturer.dashboard');
+    Route::get('/dashboard/lecturer', [LecturerController::class, 'dashboard'])
+        ->name('lecturer.dashboard');
 
     // Lecturer Courses
     Route::get('/lecturer/courses', [LecturerController::class, 'courses'])

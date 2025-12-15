@@ -1,13 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <title>{{ $course->course_code }} - {{ $course->course_name }} - GRADELY</title>
-    <style>
+@extends('lecturer.layout')
+
+@section('title', $course->course_code . ' - ' . $course->course_name . ' - GRADELY')
+
+@push('styles')
+<style>
         :root {
             --color-primary: #1976D2;
             --color-secondary: #00897B;
@@ -367,15 +363,6 @@
             }
         }
         @media (max-width: 768px) {
-            .container {
-                flex-direction: column;
-            }
-            .sidebar {
-                width: 100%;
-            }
-            .main-content {
-                padding: 20px;
-            }
             .assignments-table {
                 font-size: 12px;
             }
@@ -388,30 +375,9 @@
             }
         }
     </style>
-</head>
-<body>
-    @if (session('success'))
-        <div class="success-alert" id="successAlert">
-            {{ session('success') }}
-        </div>
-    @endif
+@endpush
 
-    <div class="container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <h2>GRADELY</h2>
-            <a href="{{ route('lecturer.courses') }}" class="active">📚 My Courses</a>
-            <a href="#students">👥 Students</a>
-            <a href="#grades">📊 Grade Management</a>
-            <a href="#assignments">✏️ Assignments</a>
-            <a href="#analytics">📈 Analytics</a>
-            <a href="{{ route('profile.view') }}">👤 Profile</a>
-            <a href="{{ route('lecturer.dashboard') }}">🏠 Dashboard</a>
-            <a href="{{ url('/logout') }}" class="logout">🚪 Logout</a>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="main-content">
+@section('content')
             <a href="{{ route('lecturer.courses') }}" class="back-link">
                 ← Back to Courses
             </a>
@@ -540,10 +506,8 @@
                     </div>
                 @endif
             </div>
-        </main>
-    </div>
 
-    <!-- Create Assignment Modal -->
+            <!-- Create Assignment Modal -->
     <div id="createModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -646,75 +610,76 @@
             </form>
         </div>
     </div>
+@endsection
 
-    <script>
-        // Auto-hide success alert
-        const successAlert = document.getElementById('successAlert');
-        if (successAlert) {
+@push('scripts')
+<script>
+    // Auto-hide success alert
+    const successAlert = document.getElementById('successAlert');
+    if (successAlert) {
+        setTimeout(() => {
+            successAlert.classList.add('hide');
             setTimeout(() => {
-                successAlert.classList.add('hide');
-                setTimeout(() => {
-                    successAlert.remove();
-                }, 300);
-            }, 4000);
-        }
+                successAlert.remove();
+            }, 300);
+        }, 4000);
+    }
 
-        // Create Modal Functions
-        function openCreateModal() {
-            document.getElementById('createModal').style.display = 'block';
-        }
+    // Create Modal Functions
+    function openCreateModal() {
+        document.getElementById('createModal').style.display = 'block';
+    }
 
-        function closeCreateModal() {
-            document.getElementById('createModal').style.display = 'none';
-            document.querySelector('#createModal form').reset();
-        }
+    function closeCreateModal() {
+        document.getElementById('createModal').style.display = 'none';
+        document.querySelector('#createModal form').reset();
+    }
 
-        // Edit Modal Functions
-        function openEditModal(id, title, description, dueDate, status, visibility, attachmentName, attachmentPath) {
-            document.getElementById('edit_title').value = title;
-            document.getElementById('edit_description').value = description;
-            document.getElementById('edit_due_date').value = dueDate;
-            document.getElementById('edit_status').value = status;
-            document.getElementById('edit_visibility').value = visibility;
-            document.getElementById('editForm').action = '{{ route("lecturer.assignment.update", [$course->id, ":id"]) }}'.replace(':id', id);
-            
-            // Handle attachment display
-            const currentAttachmentDiv = document.getElementById('current-attachment');
-            const currentAttachmentName = document.getElementById('current-attachment-name');
-            const currentAttachmentLink = document.getElementById('current-attachment-link');
-            
-            if (attachmentPath && attachmentPath !== '' && attachmentPath !== 'null') {
-                currentAttachmentDiv.style.display = 'block';
-                currentAttachmentName.textContent = attachmentName || 'Current attachment';
-                // Build the public URL - attachmentPath is relative to public folder (e.g., assignments/filename.pdf)
-                currentAttachmentLink.href = '{{ url("/") }}/' + attachmentPath;
-            } else {
-                currentAttachmentDiv.style.display = 'none';
-                currentAttachmentLink.href = '#';
-            }
-            
-            // Reset file input
-            document.getElementById('edit_attachment').value = '';
-            
-            document.getElementById('editModal').style.display = 'block';
+    // Edit Modal Functions
+    function openEditModal(id, title, description, dueDate, status, visibility, attachmentName, attachmentPath) {
+        document.getElementById('edit_title').value = title;
+        document.getElementById('edit_description').value = description;
+        document.getElementById('edit_due_date').value = dueDate;
+        document.getElementById('edit_status').value = status;
+        document.getElementById('edit_visibility').value = visibility;
+        document.getElementById('editForm').action = '{{ route("lecturer.assignment.update", [$course->id, ":id"]) }}'.replace(':id', id);
+        
+        // Handle attachment display
+        const currentAttachmentDiv = document.getElementById('current-attachment');
+        const currentAttachmentName = document.getElementById('current-attachment-name');
+        const currentAttachmentLink = document.getElementById('current-attachment-link');
+        
+        if (attachmentPath && attachmentPath !== '' && attachmentPath !== 'null') {
+            currentAttachmentDiv.style.display = 'block';
+            currentAttachmentName.textContent = attachmentName || 'Current attachment';
+            // Build the public URL - attachmentPath is relative to public folder (e.g., assignments/filename.pdf)
+            currentAttachmentLink.href = '{{ url("/") }}/' + attachmentPath;
+        } else {
+            currentAttachmentDiv.style.display = 'none';
+            currentAttachmentLink.href = '#';
         }
+        
+        // Reset file input
+        document.getElementById('edit_attachment').value = '';
+        
+        document.getElementById('editModal').style.display = 'block';
+    }
 
-        function closeEditModal() {
-            document.getElementById('editModal').style.display = 'none';
-            document.getElementById('editForm').reset();
-        }
+    function closeEditModal() {
+        document.getElementById('editModal').style.display = 'none';
+        document.getElementById('editForm').reset();
+    }
 
-        // Close modals when clicking outside
-        window.onclick = function(event) {
-            const createModal = document.getElementById('createModal');
-            const editModal = document.getElementById('editModal');
-            if (event.target == createModal) {
-                closeCreateModal();
-            }
-            if (event.target == editModal) {
-                closeEditModal();
-            }
+    // Close modals when clicking outside
+    window.onclick = function(event) {
+        const createModal = document.getElementById('createModal');
+        const editModal = document.getElementById('editModal');
+        if (event.target == createModal) {
+            closeCreateModal();
         }
-    </script>
-</body>
-</html>
+        if (event.target == editModal) {
+            closeEditModal();
+        }
+    }
+</script>
+@endpush

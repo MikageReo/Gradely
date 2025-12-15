@@ -225,7 +225,7 @@
                         <button class="close" onclick="closeBulkEnrollmentModal()">&times;</button>
                     </div>
                     <div style="margin-bottom: 16px;">
-                        <a href="{{ route('admin.courses.download.enrollment_template') }}" 
+                        <a href="{{ route('admin.courses.download.enrollment_template', $course->id) }}" 
                            target="_blank"
                            style="padding: 8px 16px; background: var(--color-secondary); color: var(--white); text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px;">
                             📥 Download Template
