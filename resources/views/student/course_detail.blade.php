@@ -35,9 +35,45 @@
         }
         .sidebar h2 {
             font-size: 18px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             border-bottom: 2px solid rgba(255,255,255,0.3);
             padding-bottom: 10px;
+            letter-spacing: 0.08em;
+        }
+        .sidebar-profile {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            padding: 16px 14px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .sidebar-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.18);
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+        }
+        .sidebar-student-name {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 2px;
+        }
+        .sidebar-student-email {
+            font-size: 12px;
+            opacity: 0.9;
+            word-break: break-all;
+        }
+        .sidebar-nav-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            opacity: 0.7;
+            margin: 6px 0 4px;
         }
         .sidebar a {
             display: block;
@@ -194,11 +230,20 @@
     <div class="container">
         <aside class="sidebar">
             <h2>GRADELY</h2>
+            <div class="sidebar-profile">
+                <div class="sidebar-avatar">
+                    <span>👤</span>
+                </div>
+                <div class="sidebar-student-name">
+                    {{ Auth::user()->name }}
+                </div>
+                <div class="sidebar-student-email">
+                    {{ Auth::user()->email }}
+                </div>
+            </div>
+            <div class="sidebar-nav-label">Navigation</div>
             <a href="{{ route('student.dashboard') }}">🏠 Dashboard</a>
             <a href="{{ route('student.dashboard') }}#courses" class="active">📚 My Courses</a>
-            <a href="#grades">📊 Grades</a>
-            <a href="#assignments">✏️ Assignments</a>
-            <a href="#progress">📈 Progress</a>
             <a href="{{ route('profile.view') }}">👤 Profile</a>
             <a href="{{ url('/logout') }}" class="logout">🚪 Logout</a>
         </aside>

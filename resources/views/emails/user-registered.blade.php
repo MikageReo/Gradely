@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to {{ config('app.name') }}</title>
+    <title>Welcome to Gradely</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -84,14 +84,14 @@
 <body>
     <div class="email-container">
         <div class="header">
-            <h1>Welcome to {{ config('app.name') }}!</h1>
+            <h1>Welcome to Gradely!</h1>
         </div>
-        
+
         <div class="content">
             <p>Hello <strong>{{ $user->name }}</strong>,</p>
-            
+
             <p>Your account has been successfully created. You can now log in to the system using the following credentials:</p>
-            
+
             <div class="credentials">
                 <div class="credentials-item">
                     <strong>Email:</strong> {{ $user->email }}
@@ -103,20 +103,20 @@
                     <strong>Role:</strong> {{ ucfirst($user->role) }}
                 </div>
             </div>
-            
+
             <div class="warning">
                 <p>⚠️ Please change your password after first login for security.</p>
             </div>
-            
+
             <div style="text-align: center;">
                 <a href="{{ $loginUrl }}" class="button">Login Now</a>
             </div>
-            
+
             <p>If you have any questions or need assistance, please contact the administration.</p>
-            
+
             <p>Best regards,<br><strong>{{ config('app.name') }} Team</strong></p>
         </div>
-        
+
         <div class="footer">
             <p>This is an automated email. Please do not reply to this message.</p>
         </div>
