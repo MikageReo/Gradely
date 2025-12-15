@@ -26,12 +26,86 @@
         body {
             font-family: var(--font);
             background: var(--bg);
-            padding: 20px;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .layout {
+            display: flex;
             min-height: 100vh;
         }
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
+        /* Sidebar (student-style navigation) */
+        .sidebar {
+            width: 250px;
+            background: var(--color-primary);
+            color: var(--white);
+            padding: 20px;
+            box-shadow: 2px 0 6px rgba(0,0,0,0.1);
+        }
+        .sidebar h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid rgba(255,255,255,0.3);
+            padding-bottom: 10px;
+            letter-spacing: 0.08em;
+        }
+        .sidebar-profile {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            padding: 16px 14px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .sidebar-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.18);
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+        }
+        .sidebar-student-name {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 2px;
+        }
+        .sidebar-student-email {
+            font-size: 12px;
+            opacity: 0.9;
+            word-break: break-all;
+        }
+        .sidebar-nav-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            opacity: 0.7;
+            margin: 6px 0 4px;
+        }
+        .sidebar a {
+            display: block;
+            color: var(--white);
+            text-decoration: none;
+            padding: 10px 12px;
+            margin: 8px 0;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .sidebar a:hover,
+        .sidebar a.active {
+            background: rgba(255,255,255,0.1);
+        }
+        .sidebar .logout {
+            background: rgba(255,0,0,0.3);
+            margin-top: 30px;
+        }
+        .sidebar .logout:hover {
+            background: rgba(255,0,0,0.5);
+        }
+        .main-content {
+            flex: 1;
+            padding: 24px;
         }
         .assignment-card {
             background: var(--white);
@@ -367,15 +441,20 @@
         .success-alert.hide {
             animation: slideUp 0.3s ease-out;
         }
-        .back-link {
-            display: inline-block;
-            margin-bottom: 20px;
-            color: var(--color-primary);
-            text-decoration: none;
-            font-weight: 500;
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
         }
-        .back-link:hover {
-            text-decoration: underline;
+        .page-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #1f2933;
+        }
+        .page-breadcrumb {
+            font-size: 13px;
+            color: var(--muted);
         }
         .submitted-files {
             margin-top: 15px;
@@ -445,6 +524,18 @@
             text-decoration: none;
         }
         @media (max-width: 768px) {
+            .layout {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+            .main-content {
+                padding: 16px;
+            }
             .assignment-info {
                 grid-template-columns: 1fr;
             }
@@ -455,16 +546,65 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        @if (session('success'))
-            <div class="success-alert" id="successAlert">
-                {{ session('success') }}
+    @php
+        $role = Auth::user()->role ?? 'student';
+        $dashboardUrl = $role === 'student'
+            ? route('student.dashboard')
+            : ($role === 'lecturer' ? route('lecturer.dashboard') : route('admin.dashboard'));
+    @endphp
+    <div class="layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h2>GRADELY</h2>
+            <div class="sidebar-profile">
+                <div class="sidebar-avatar">
+                    <span>👤</span>
+                </div>
+                <div class="sidebar-student-name">
+                    {{ Auth::user()->name }}
+                </div>
+                <div class="sidebar-student-email">
+                    {{ Auth::user()->email }}
+                </div>
             </div>
-        @endif
+            <div class="sidebar-nav-label">Navigation</div>
+            <a href="{{ $dashboardUrl }}">🏠 Dashboard</a>
+            @if($role === 'student')
+                <a href="{{ route('student.dashboard') }}#courses">📚 My Courses</a>
+                @if(isset($assignment->course))
+                    <a href="{{ route('student.course.show', $assignment->course->id) }}">📘 This Course</a>
+                @endif
+            @elseif($role === 'lecturer')
+                <a href="{{ route('lecturer.courses') }}">📚 My Courses</a>
+                @if(isset($assignment->course))
+                    <a href="{{ route('lecturer.course.show', $assignment->course->id) }}">📘 This Course</a>
+                @endif
+            @endif
+            <a href="{{ route('profile.view') }}">👤 Profile</a>
+            <a href="{{ url('/logout') }}" class="logout">🚪 Logout</a>
+        </aside>
 
-        <a href="{{ Auth::user()->role === 'student' ? route('student.dashboard') : route('lecturer.dashboard') }}" class="back-link">← Back to Dashboard</a>
+        <!-- Main Content -->
+        <main class="main-content">
+            @if (session('success'))
+                <div class="success-alert" id="successAlert">
+                    {{ session('success') }}
+                </div>
+            @endif
 
-        <div class="assignment-card">
+            <div class="page-header">
+                <div>
+                    <div class="page-title">Assignment Submission</div>
+                    <div class="page-breadcrumb">
+                        {{ $assignment->course->course_code ?? '' }} · {{ $assignment->course->course_name ?? 'Course' }}
+                    </div>
+                </div>
+                <div style="font-size: 13px; color: var(--muted);">
+                    Due: {{ $assignment->due_date ? $assignment->due_date->format('M d, Y g:ia') : 'No due date' }}
+                </div>
+            </div>
+
+            <div class="assignment-card">
             <div class="assignment-header">
                 <div class="assignment-icon">📝</div>
                 <h1 class="assignment-title">Assignment: {{ $assignment->title }}</h1>

@@ -17,14 +17,89 @@
             background: var(--bg);
             margin: 0;
         }
-        .page-wrapper {
+        .container {
+            display: flex;
             min-height: 100vh;
+        }
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background: var(--color-primary);
+            color: var(--white);
+            padding: 20px;
+            box-shadow: 2px 0 6px rgba(0,0,0,0.1);
+        }
+        .sidebar h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid rgba(255,255,255,0.3);
+            padding-bottom: 10px;
+            letter-spacing: 0.08em;
+        }
+        .sidebar-profile {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            padding: 16px 14px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .sidebar-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.18);
+            margin: 0 auto 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 24px 16px;
+            font-size: 32px;
         }
-        .container {
+        .sidebar-student-name {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 2px;
+        }
+        .sidebar-student-email {
+            font-size: 12px;
+            opacity: 0.9;
+            word-break: break-all;
+        }
+        .sidebar-nav-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            opacity: 0.7;
+            margin: 6px 0 4px;
+        }
+        .sidebar a {
+            display: block;
+            color: var(--white);
+            text-decoration: none;
+            padding: 10px 12px;
+            margin: 8px 0;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .sidebar a:hover,
+        .sidebar a.active {
+            background: rgba(255,255,255,0.1);
+        }
+        .sidebar .logout {
+            background: rgba(255,0,0,0.3);
+            margin-top: 30px;
+        }
+        .sidebar .logout:hover {
+            background: rgba(255,0,0,0.5);
+        }
+        /* Main content */
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .profile-card {
             width: 100%;
             max-width: 780px;
             background: var(--white);
@@ -143,6 +218,19 @@
         }
         @media (max-width: 768px) {
             .container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+            .main-content {
+                padding: 20px;
+                align-items: stretch;
+            }
+            .profile-card {
                 grid-template-columns: minmax(0, 1fr);
                 padding: 22px 18px;
             }
@@ -156,52 +244,85 @@
     </style>
 </head>
 <body>
-    <div class="page-wrapper">
-        <div class="container">
-            <div class="profile-summary">
-                <div class="profile-avatar">
+    @php
+        $role = Auth::user()->role ?? 'student';
+        $dashboardUrl = $role === 'admin'
+            ? route('admin.dashboard')
+            : ($role === 'lecturer' ? route('lecturer.dashboard') : route('student.dashboard'));
+    @endphp
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h2>GRADELY</h2>
+            <div class="sidebar-profile">
+                <div class="sidebar-avatar">
                     <span>👤</span>
                 </div>
-                <div class="profile-name">{{ Auth::user()->name }}</div>
-                <div class="profile-role">
-                    {{ strtoupper(Auth::user()->role ?? 'User') }}
+                <div class="sidebar-student-name">
+                    {{ Auth::user()->name }}
                 </div>
-                <div class="profile-email">{{ Auth::user()->email }}</div>
-                <div style="margin-top: 8px;">
-                    <span class="badge-pill">
-                        ✨ Keep your details up to date
-                    </span>
+                <div class="sidebar-student-email">
+                    {{ Auth::user()->email }}
                 </div>
             </div>
-            <div>
-                <h2>Account Settings</h2>
-                <p class="subtitle">Update your personal information and change your password.</p>
-                @if ($errors->any())
-                    <div class="alert">
-                        <ul>
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
+            <div class="sidebar-nav-label">Navigation</div>
+            <a href="{{ $dashboardUrl }}">🏠 Dashboard</a>
+            @if($role === 'student')
+                <a href="{{ route('student.dashboard') }}#courses">📚 My Courses</a>
+            @elseif($role === 'lecturer')
+                <a href="{{ route('lecturer.courses') }}">📚 My Courses</a>
+            @elseif($role === 'admin')
+                <a href="{{ route('admin.courses.index') }}">📚 Courses</a>
+            @endif
+            <a href="{{ route('profile.view') }}" class="active">👤 Profile</a>
+            <a href="{{ url('/logout') }}" class="logout">🚪 Logout</a>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="profile-card">
+                <div class="profile-summary">
+                    <div class="profile-avatar">
+                        <span>👤</span>
                     </div>
-                @endif
-                <form method="POST" action="{{ route('profile.update') }}">
-                    @csrf
-                    <label for="name">Full Name</label>
-                    <input type="text" id="name" name="name" value="{{ Auth::user()->name }}" required>
-                    <label for="email">Email</label>
-                    <input type="email" id="email" name="email" value="{{ Auth::user()->email }}" required>
-                    <label for="password">New Password (leave blank to keep current)</label>
-                    <input type="password" id="password" name="password" placeholder="Enter a new password">
-                    <label for="password_confirmation">Confirm New Password</label>
-                    <input type="password" id="password_confirmation" name="password_confirmation" placeholder="Re-enter new password">
-                    <button type="submit">Save Changes</button>
-                </form>
-                <form method="GET" action="{{ Auth::user()->role === 'admin' ? route('admin.dashboard') : (Auth::user()->role === 'lecturer' ? route('lecturer.dashboard') : route('student.dashboard')) }}">
-                    <button type="submit" class="secondary-btn">Back to Dashboard</button>
-                </form>
+                    <div class="profile-name">{{ Auth::user()->name }}</div>
+                    <div class="profile-role">
+                        {{ strtoupper($role ?? 'User') }}
+                    </div>
+                    <div class="profile-email">{{ Auth::user()->email }}</div>
+                    <div style="margin-top: 8px;">
+                        <span class="badge-pill">
+                            ✨ Keep your details up to date
+                        </span>
+                    </div>
+                </div>
+                <div>
+                    <h2>Account Settings</h2>
+                    <p class="subtitle">Update your personal information and change your password.</p>
+                    @if ($errors->any())
+                        <div class="alert">
+                            <ul>
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+                    <form method="POST" action="{{ route('profile.update') }}">
+                        @csrf
+                        <label for="name">Full Name</label>
+                        <input type="text" id="name" name="name" value="{{ Auth::user()->name }}" required>
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" value="{{ Auth::user()->email }}" required>
+                        <label for="password">New Password (leave blank to keep current)</label>
+                        <input type="password" id="password" name="password" placeholder="Enter a new password">
+                        <label for="password_confirmation">Confirm New Password</label>
+                        <input type="password" id="password_confirmation" name="password_confirmation" placeholder="Re-enter new password">
+                        <button type="submit">Save Changes</button>
+                    </form>
+                </div>
             </div>
-        </div>
+        </main>
     </div>
 </body>
 </html>
