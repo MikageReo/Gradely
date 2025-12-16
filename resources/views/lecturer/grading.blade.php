@@ -1,208 +1,144 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Grading - {{ $assignment->title }} - GRADELY</title>
-    <style>
-        :root {
-            --color-primary: #1976D2;
-            --color-secondary: #00897B;
-            --bg: #f4f7f6;
-            --muted: #666;
-            --white: #fff;
-            --font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: var(--font);
-            background: var(--bg);
-        }
-        .container {
-            display: flex;
-            min-height: 100vh;
-        }
-        .sidebar {
-            width: 250px;
-            background: var(--color-secondary);
-            color: var(--white);
-            padding: 20px;
-            box-shadow: 2px 0 6px rgba(0,0,0,0.1);
-        }
-        .sidebar h2 {
-            font-size: 18px;
-            margin-bottom: 30px;
-            border-bottom: 2px solid rgba(255,255,255,0.3);
-            padding-bottom: 10px;
-        }
-        .sidebar a {
-            display: block;
-            color: var(--white);
-            text-decoration: none;
-            padding: 10px 12px;
-            margin: 8px 0;
-            border-radius: 6px;
-            transition: background 0.2s;
-        }
-        .sidebar a:hover {
-            background: rgba(255,255,255,0.1);
-        }
-        .main-content {
-            flex: 1;
-            padding: 30px;
-        }
-        .back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--color-primary);
-            text-decoration: none;
-            margin-bottom: 20px;
-            font-weight: 500;
-        }
-        .header {
-            background: var(--white);
-            padding: 24px;
-            border-radius: 8px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-            margin-bottom: 24px;
-        }
-        .header h1 {
-            font-size: 24px;
-            color: #222;
-            margin-bottom: 8px;
-        }
-        .header p {
-            color: var(--muted);
-            font-size: 14px;
-        }
-        .section {
-            background: var(--white);
-            padding: 24px;
-            border-radius: 8px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-            margin-bottom: 24px;
-        }
-        .submissions-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .submissions-table th,
-        .submissions-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        .submissions-table th {
-            font-weight: 600;
-            color: var(--muted);
-            font-size: 13px;
-            text-transform: uppercase;
-        }
-        .btn-primary {
-            background: var(--color-primary);
-            color: var(--white);
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 14px;
-            cursor: pointer;
-        }
-        .btn-primary:hover {
-            background: #1565C0;
-        }
-        .badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-        .badge-success {
-            background: #e8f5e9;
-            color: #2e7d32;
-        }
-        .badge-warning {
-            background: #fff3e0;
-            color: #e65100;
-        }
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--muted);
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <aside class="sidebar">
-            <h2>GRADELY</h2>
-            <a href="{{ route('lecturer.courses') }}">📚 My Courses</a>
-            <a href="{{ route('lecturer.course.show', $course->id) }}">← Back to Course</a>
-            <a href="{{ route('lecturer.dashboard') }}">🏠 Dashboard</a>
-            <a href="{{ url('/logout') }}" class="logout">🚪 Logout</a>
-        </aside>
+@extends('lecturer.layout')
 
-        <main class="main-content">
-            <a href="{{ route('lecturer.course.show', $course->id) }}" class="back-link">
-                ← Back to Course
-            </a>
+@section('title', 'Grading - ' . $assignment->title . ' - GRADELY')
 
-            <div class="header">
-                <h1>{{ $assignment->title }}</h1>
-                <p>{{ $course->course_code }} - {{ $course->course_name }}</p>
-            </div>
+@push('styles')
+<style>
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--color-primary);
+        text-decoration: none;
+        margin-bottom: 20px;
+        font-weight: 500;
+    }
+    .header {
+        background: var(--white);
+        padding: 24px;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        margin-bottom: 24px;
+    }
+    .header h1 {
+        font-size: 24px;
+        color: #222;
+        margin-bottom: 8px;
+    }
+    .header p {
+        color: var(--muted);
+        font-size: 14px;
+    }
+    .section {
+        background: var(--white);
+        padding: 24px;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        margin-bottom: 24px;
+    }
+    .submissions-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .submissions-table th,
+    .submissions-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .submissions-table th {
+        font-weight: 600;
+        color: var(--muted);
+        font-size: 13px;
+        text-transform: uppercase;
+    }
+    .btn-primary {
+        background: var(--color-primary);
+        color: var(--white);
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 14px;
+        cursor: pointer;
+    }
+    .btn-primary:hover {
+        background: #1565C0;
+    }
+    .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    .badge-success {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+    .badge-warning {
+        background: #fff3e0;
+        color: #e65100;
+    }
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--muted);
+    }
+</style>
+@endpush
 
-            <div class="section">
-                <h2 style="margin-bottom: 20px; font-size: 20px; color: #222;">Student Submissions</h2>
-                @if($submissions->count() > 0)
-                    <table class="submissions-table">
-                        <thead>
-                            <tr>
-                                <th>Student</th>
-                                <th>Submitted At</th>
-                                <th>Files</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($submissions as $submission)
-                                <tr>
-                                    <td>
-                                        <div style="font-weight: 500;">{{ $submission->student->name }}</div>
-                                        <div style="font-size: 12px; color: var(--muted);">{{ $submission->student->email }}</div>
-                                    </td>
-                                    <td>{{ $submission->submitted_at ? $submission->submitted_at->format('M d, Y g:ia') : 'N/A' }}</td>
-                                    <td>{{ $submission->submissionFiles->count() }} file(s)</td>
-                                    <td>
-                                        @if($submission->score !== null)
-                                            <span class="badge badge-success">Graded ({{ $submission->score }})</span>
-                                        @else
-                                            <span class="badge badge-warning">Pending</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <a href="{{ route('assignment.submission', $assignment->id) }}" class="btn-primary">View & Grade</a>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                @else
-                    <div class="empty-state">
-                        <p>No submissions yet for this assignment.</p>
-                    </div>
-                @endif
-            </div>
-        </main>
-    </div>
-</body>
-</html>
+@section('content')
+<a href="{{ route('lecturer.course.show', $course->id) }}" class="back-link">
+    ← Back to Course
+</a>
 
+<div class="header">
+    <h1>{{ $assignment->title }}</h1>
+    <p>{{ $course->course_code }} - {{ $course->course_name }}</p>
+</div>
+
+<div class="section">
+    <h2 style="margin-bottom: 20px; font-size: 20px; color: #222;">Student Submissions</h2>
+    @if($submissions->count() > 0)
+        <table class="submissions-table">
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Submitted At</th>
+                    <th>Files</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($submissions as $submission)
+                    <tr>
+                        <td>
+                            <div style="font-weight: 500;">{{ $submission->student->name }}</div>
+                            <div style="font-size: 12px; color: var(--muted);">{{ $submission->student->email }}</div>
+                        </td>
+                        <td>{{ $submission->submitted_at ? $submission->submitted_at->format('M d, Y g:ia') : 'N/A' }}</td>
+                        <td>{{ $submission->submissionFiles->count() }} file(s)</td>
+                        <td>
+                            @if($submission->score !== null)
+                                <span class="badge badge-success">Graded ({{ $submission->score }})</span>
+                            @else
+                                <span class="badge badge-warning">Pending</span>
+                            @endif
+                        </td>
+                        <td>
+                            <a href="{{ route('assignment.submission', $assignment->id) }}" class="btn-primary">View & Grade</a>
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @else
+        <div class="empty-state">
+            <p>No submissions yet for this assignment.</p>
+        </div>
+    @endif
+</div>
+@endsection

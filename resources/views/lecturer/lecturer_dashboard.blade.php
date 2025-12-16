@@ -1,246 +1,169 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <title>Lecturer Dashboard - GRADELY</title>
-    <style>
-        :root {
-            --color-primary: #1976D2;
-            --color-secondary: #00897B;
-            --bg: #f4f7f6;
-            --muted: #666;
-            --white: #fff;
-            --font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+@extends('lecturer.layout')
+
+@section('title', 'Lecturer Dashboard - GRADELY')
+
+@push('styles')
+<style>
+    .header {
+        background: var(--white);
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .header h1 {
+        font-size: 24px;
+        color: #222;
+    }
+    .user-info {
+        text-align: right;
+    }
+    .user-info p {
+        color: var(--muted);
+        font-size: 14px;
+    }
+    .user-name {
+        font-weight: 600;
+        color: #222;
+        font-size: 16px;
+    }
+    .page-header {
+        margin-bottom: 30px;
+    }
+    .page-title {
+        font-size: 32px;
+        font-weight: 700;
+        color: #222;
+        margin-bottom: 4px;
+    }
+    .page-subtitle {
+        font-size: 16px;
+        color: var(--muted);
+        font-weight: 400;
+    }
+    /* Course Cards - Matching Student Dashboard Style */
+    .courses-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+    }
+    .course-card {
+        background: var(--white);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        transition: transform 0.2s, box-shadow 0.2s;
+        cursor: pointer;
+        height: 200px;
+        display: flex;
+        flex-direction: column;
+    }
+    .course-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    }
+    .course-card-header {
+        height: 120px;
+        position: relative;
+        background: linear-gradient(135deg, var(--color-primary) 0%, #1565C0 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .course-code {
+        position: relative;
+        z-index: 1;
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--white);
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    .course-card-body {
+        padding: 16px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .course-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--color-primary);
+        margin-bottom: 4px;
+        line-height: 1.4;
+    }
+    .course-faculty {
+        font-size: 13px;
+        color: var(--muted);
+        margin-bottom: 8px;
+    }
+    .course-progress {
+        font-size: 13px;
+        color: var(--muted);
+    }
+    @media (max-width: 1024px) {
+        .courses-grid {
+            grid-template-columns: repeat(2, 1fr);
         }
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: var(--font);
-            background: var(--bg);
-        }
-        .container {
-            display: flex;
-            min-height: 100vh;
-        }
-        /* Sidebar */
-        .sidebar {
-            width: 250px;
-            background: var(--color-secondary);
-            color: var(--white);
-            padding: 20px;
-            box-shadow: 2px 0 6px rgba(0,0,0,0.1);
-        }
-        .sidebar h2 {
-            font-size: 18px;
-            margin-bottom: 30px;
-            border-bottom: 2px solid rgba(255,255,255,0.3);
-            padding-bottom: 10px;
-        }
-        .sidebar a {
-            display: block;
-            color: var(--white);
-            text-decoration: none;
-            padding: 10px 12px;
-            margin: 8px 0;
-            border-radius: 6px;
-            transition: background 0.2s;
-        }
-        .sidebar a:hover {
-            background: rgba(255,255,255,0.1);
-        }
-        .sidebar .logout {
-            background: rgba(255,0,0,0.3);
-            margin-top: 30px;
-        }
-        .sidebar .logout:hover {
-            background: rgba(255,0,0,0.5);
-        }
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            padding: 30px;
-        }
+    }
+    @media (max-width: 768px) {
         .header {
-            background: var(--white);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            align-items: flex-start;
         }
-        .header h1 {
-            font-size: 24px;
-            color: #222;
+        .courses-grid {
+            grid-template-columns: 1fr;
         }
-        .user-info {
-            text-align: right;
-        }
-        .user-info p {
-            color: var(--muted);
-            font-size: 14px;
-        }
-        .user-name {
-            font-weight: 600;
-            color: #222;
-            font-size: 16px;
-        }
-        .success-alert {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-            color: #155724;
-            padding: 16px;
-            text-align: center;
-            z-index: 1000;
-            animation: slideDown 0.3s ease-out;
-        }
-        @keyframes slideDown {
-            from {
-                transform: translateY(-100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-        @keyframes slideUp {
-            from {
-                transform: translateY(0);
-                opacity: 1;
-            }
-            to {
-                transform: translateY(-100%);
-                opacity: 0;
-            }
-        }
-        .success-alert.hide {
-            animation: slideUp 0.3s ease-out;
-        }
-        /* Cards */
-        .cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-        .card {
-            background: var(--white);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-        }
-        .card h3 {
-            color: var(--color-secondary);
-            margin-bottom: 10px;
-        }
-        .card p {
-            color: var(--muted);
-            font-size: 14px;
-            line-height: 1.6;
-        }
-        @media (max-width: 768px) {
-            .container {
-                flex-direction: column;
-            }
-            .sidebar {
-                width: 100%;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }
-            .main-content {
-                padding: 20px;
-            }
-            .header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <h2>GRADELY</h2>
-            <a href="{{ route('lecturer.courses') }}">📚 My Courses</a>
-            <a href="#students">👥 Students</a>
-            <a href="#grades">📊 Grade Management</a>
-            <a href="#assignments">✏️ Assignments</a>
-            <a href="#analytics">📈 Analytics</a>
-            <a href="{{ route('profile.view') }}">👤 Profile</a>
-            <a href="{{ url('/logout') }}" class="logout">🚪 Logout</a>
-        </aside>
+    }
+</style>
+@endpush
 
-        <!-- Main Content -->
-        <main class="main-content">
-            @if (session('success'))
-                <div class="success-alert" id="successAlert">
-                    {{ session('success') }}
-                </div>
-            @endif
-
-            <div class="header">
-                <div>
-                    <h1>Lecturer Dashboard</h1>
-                </div>
-                <div class="user-info">
-                    <p>Logged in as:</p>
-                    <p class="user-name">{{ Auth::user()->name }}</p>
-                </div>
-            </div>
-
-            <div class="cards">
-                <a href="{{ route('lecturer.courses') }}" style="text-decoration: none; color: inherit;">
-                    <div class="card" id="courses">
-                        <h3>📚 My Courses</h3>
-                        <p>Manage your courses, update course materials, and view enrolled students for each course.</p>
-                    </div>
-                </a>
-                <div class="card" id="students">
-                    <h3>👥 Students</h3>
-                    <p>View all students, manage enrollment, track attendance, and monitor student progress.</p>
-                </div>
-                <div class="card" id="grades">
-                    <h3>📊 Grade Management</h3>
-                    <p>Enter and manage grades for assignments, exams, and assessments. Track class performance.</p>
-                </div>
-                <div class="card" id="assignments">
-                    <h3>✏️ Assignments</h3>
-                    <p>Create, distribute, and manage assignments. Review submissions and provide feedback.</p>
-                </div>
-                <div class="card" id="analytics">
-                    <h3>📈 Analytics</h3>
-                    <p>View class analytics, performance reports, and insights about your students' progress.</p>
-                </div>
-            </div>
-        </main>
+@section('content')
+<div class="header">
+    <div>
+        <h1>Welcome to Your Dashboard</h1>
     </div>
+    <div class="user-info">
+        <p>Logged in as:</p>
+        <p class="user-name">{{ Auth::user()->name }}</p>
+    </div>
+</div>
 
-    <script>
-        // Auto-hide success alert after 4 seconds
-        const successAlert = document.getElementById('successAlert');
-        if (successAlert) {
-            setTimeout(() => {
-                successAlert.classList.add('hide');
-                setTimeout(() => {
-                    successAlert.remove();
-                }, 300);
-            }, 4000);
-        }
-    </script>
-</body>
-</html>
+<div class="page-header">
+    <h1 class="page-title">My courses</h1>
+    <p class="page-subtitle">Course overview</p>
+</div>
+
+<!-- Course Cards -->
+<div class="courses-grid" id="coursesGrid">
+    @forelse($courses as $course)
+        @php
+            // Calculate progress based on assignments
+            $totalAssignments = $course->assignments_count ?? 0;
+            $progress = $totalAssignments > 0 ? min(100, ($totalAssignments * 10)) : 0;
+        @endphp
+        <a href="{{ route('lecturer.course.show', $course->id) }}" style="text-decoration: none; color: inherit;">
+            <div class="course-card">
+                <div class="course-card-header">
+                    <div class="course-code">{{ $course->course_code }}</div>
+                </div>
+                <div class="course-card-body">
+                    <div>
+                        <div class="course-title">{{ strtoupper($course->course_name) }}</div>
+                        <div class="course-faculty">FACULTY OF COMPUTING</div>
+                    </div>
+                    <div class="course-progress">{{ $progress }}% complete</div>
+                </div>
+            </div>
+        </a>
+    @empty
+        <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--muted);">
+            <p style="font-size: 18px; margin-bottom: 8px;">No courses found</p>
+            <p style="font-size: 14px;">You haven't been assigned to any courses yet.</p>
+        </div>
+    @endforelse
+</div>
+@endsection

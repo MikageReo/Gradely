@@ -35,21 +35,119 @@
         }
         .sidebar h2 {
             font-size: 18px;
-            margin-bottom: 30px;
+            margin-bottom: 32px;
             border-bottom: 2px solid rgba(255,255,255,0.3);
-            padding-bottom: 10px;
+            padding-bottom: 12px;
+            letter-spacing: 0.08em;
+            font-weight: 600;
+        }
+        .sidebar-profile {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            padding: 16px 14px;
+            text-align: center;
+            margin-bottom: 28px;
+        }
+        .sidebar-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.18);
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+        }
+        .sidebar-student-name {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 2px;
+        }
+        .sidebar-student-email {
+            font-size: 12px;
+            opacity: 0.9;
+            word-break: break-all;
+        }
+        .sidebar-nav-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            opacity: 0.7;
+            margin: 8px 0 8px;
         }
         .sidebar a {
             display: block;
             color: var(--white);
             text-decoration: none;
-            padding: 10px 12px;
-            margin: 8px 0;
-            border-radius: 6px;
-            transition: background 0.2s;
+            padding: 12px 14px;
+            margin: 0 0 12px 0;
+            border-radius: 8px;
+            transition: all 0.2s;
+            font-size: 14px;
         }
         .sidebar a:hover, .sidebar a.active {
             background: rgba(255,255,255,0.1);
+            transform: translateX(2px);
+        }
+        /* Dropdown */
+        .dropdown {
+            position: relative;
+            margin: 0 0 12px 0;
+        }
+        .dropdown-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            padding: 12px 14px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        .dropdown-toggle:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateX(2px);
+        }
+        .dropdown-toggle.active {
+            background: rgba(255,255,255,0.15);
+        }
+        .dropdown-toggle::after {
+            content: '▼';
+            font-size: 10px;
+            transition: transform 0.3s;
+        }
+        .dropdown-toggle.active::after {
+            transform: rotate(180deg);
+        }
+        .dropdown-menu {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            margin-left: 12px;
+            margin-top: 8px;
+        }
+        .dropdown-menu.active {
+            max-height: 500px;
+        }
+        .dropdown-menu a {
+            padding: 10px 14px;
+            font-size: 13px;
+            border-left: 2px solid rgba(255,255,255,0.2);
+            margin-left: 12px;
+            margin-bottom: 6px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .dropdown-menu a:hover {
+            background: rgba(255,255,255,0.1);
+            border-left-color: rgba(255,255,255,0.5);
+            transform: translateX(2px);
+        }
+        .dropdown-menu a.active {
+            background: rgba(255,255,255,0.15);
+            border-left-color: var(--white);
         }
         .sidebar .logout {
             background: rgba(255,0,0,0.3);
@@ -194,12 +292,48 @@
     <div class="container">
         <aside class="sidebar">
             <h2>GRADELY</h2>
-            <a href="{{ route('student.dashboard') }}">🏠 Dashboard</a>
-            <a href="{{ route('student.dashboard') }}#courses" class="active">📚 My Courses</a>
-            <a href="#grades">📊 Grades</a>
-            <a href="#assignments">✏️ Assignments</a>
-            <a href="#progress">📈 Progress</a>
-            <a href="{{ route('profile.view') }}">👤 Profile</a>
+            <div class="sidebar-profile">
+                <div class="sidebar-avatar">
+                    <span>👤</span>
+                </div>
+                <div class="sidebar-student-name">
+                    {{ Auth::user()->name }}
+                </div>
+                <div class="sidebar-student-email">
+                    {{ Auth::user()->email }}
+                </div>
+            </div>
+            <!-- Dashboard Link -->
+            <a href="{{ route('student.dashboard') }}" class="{{ request()->routeIs('student.dashboard') ? 'active' : '' }}">🏠 Dashboard</a>
+            
+            <!-- My Courses Dropdown -->
+            <div class="dropdown">
+                <div class="dropdown-toggle {{ request()->routeIs('student.course.show') ? 'active' : '' }}" onclick="toggleDropdown(this)">
+                    📚 My Courses
+                </div>
+                <div class="dropdown-menu" id="coursesDropdown">
+                    @php
+                        // Get unique courses enrolled by this student
+                        $studentCourses = \App\Models\Courses::whereHas('courseLecturers.students', function($query) {
+                            $query->where('student_id', Auth::id());
+                        })->distinct()->get();
+                    @endphp
+                    @if($studentCourses->count() > 0)
+                        @foreach($studentCourses as $course)
+                            <a href="{{ route('student.course.show', $course->id) }}" 
+                               class="{{ request()->routeIs('student.course.show') && request()->route('courseId') == $course->id ? 'active' : '' }}">
+                                {{ $course->course_code }} - {{ $course->course_name }}
+                            </a>
+                        @endforeach
+                    @else
+                        <a href="{{ route('student.dashboard') }}#courses" style="opacity: 0.7;">
+                            No courses enrolled
+                        </a>
+                    @endif
+                </div>
+            </div>
+            
+            <a href="{{ route('profile.view') }}" class="{{ request()->routeIs('profile.view') ? 'active' : '' }}">👤 Profile</a>
             <a href="{{ url('/logout') }}" class="logout">🚪 Logout</a>
         </aside>
 
@@ -233,6 +367,110 @@
                         <span>FACULTY OF COMPUTING</span>
                     </div>
                 </div>
+            </div>
+
+            <!-- Performance Section -->
+            @php
+                $perf = $performance ?? [];
+                $totalAssignments = $perf['total_assignments'] ?? 0;
+                $submittedCount = $perf['submitted_count'] ?? 0;
+                $gradedCount = $perf['graded_count'] ?? 0;
+                $averageScore = $perf['average_score'] ?? null;
+                $averageGrade = $perf['average_grade'] ?? null;
+                $completionPercentage = $perf['completion_percentage'] ?? 0;
+                $perfLevel = $perf['performance_level'] ?? [];
+                $hasGrades = $perf['has_grades'] ?? false;
+            @endphp
+            <div class="section" style="border-left: 4px solid {{ $perfLevel['color'] ?? '#1976D2' }};">
+                <h2 class="section-title">📊 Course Performance</h2>
+                
+                <!-- Overall Performance Score Card -->
+                @if($hasGrades && $averageScore !== null)
+                    <div style="background: {{ $perfLevel['bg_color'] ?? '#F5F5F5' }}; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
+                            <div>
+                                <div style="font-size: 13px; color: {{ $perfLevel['text_color'] ?? '#757575' }}; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Average Performance</div>
+                                <div style="display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px;">
+                                    <span style="font-size: 48px; font-weight: 700; color: {{ $perfLevel['color'] ?? '#1976D2' }};">{{ $averageScore }}</span>
+                                    <span style="font-size: 20px; color: var(--muted);">/ 100</span>
+                                    @if($averageGrade)
+                                        <span style="font-size: 36px; font-weight: 700; color: {{ $perfLevel['color'] ?? '#1976D2' }}; margin-left: 8px;">({{ $averageGrade }})</span>
+                                    @endif
+                                </div>
+                                <div style="font-size: 16px; font-weight: 600; color: {{ $perfLevel['text_color'] ?? '#757575' }};">{{ $perfLevel['level'] ?? 'No grades yet' }}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 13px; color: {{ $perfLevel['text_color'] ?? '#757575' }}; margin-bottom: 4px;">Assignments Graded</div>
+                                <div style="font-size: 32px; font-weight: 700; color: {{ $perfLevel['color'] ?? '#1976D2' }};">{{ $gradedCount }}</div>
+                                <div style="font-size: 14px; color: var(--muted);">of {{ $totalAssignments }} total</div>
+                            </div>
+                        </div>
+                    </div>
+                @else
+                    <div style="background: #F5F5F5; border-radius: 12px; padding: 24px; margin-bottom: 24px; text-align: center;">
+                        <div style="font-size: 16px; color: var(--muted); margin-bottom: 8px;">No grades available yet</div>
+                        <div style="font-size: 14px; color: var(--muted);">Complete assignments and wait for grading to see your performance metrics</div>
+                    </div>
+                @endif
+
+                <!-- Completion Progress Bar -->
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 14px; font-weight: 600; color: #222;">Completion Progress</span>
+                        <span style="font-size: 14px; font-weight: 600; color: var(--color-primary);">{{ $completionPercentage }}%</span>
+                    </div>
+                    <div style="width: 100%; height: 12px; background: #E0E0E0; border-radius: 6px; overflow: hidden; margin-bottom: 8px;">
+                        <div style="width: {{ $completionPercentage }}%; height: 100%; background: linear-gradient(90deg, var(--color-primary) 0%, #42A5F5 100%); border-radius: 6px; transition: width 0.3s ease;"></div>
+                    </div>
+                    <div style="font-size: 13px; color: var(--muted);">
+                        <strong>{{ $submittedCount }}</strong> of <strong>{{ $totalAssignments }}</strong> assignments submitted
+                        @if($gradedCount > 0)
+                            • <strong>{{ $gradedCount }}</strong> graded
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Performance Level Indicator -->
+                @if($hasGrades && $averageScore !== null)
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-size: 14px; font-weight: 600; color: #222;">Performance Level</span>
+                        </div>
+                        <div style="width: 100%; height: 10px; background: #E0E0E0; border-radius: 5px; overflow: hidden; position: relative; margin-bottom: 8px;">
+                            <!-- Grade ranges background -->
+                            <div style="position: absolute; width: 100%; height: 100%; display: flex;">
+                                <div style="flex: 1; background: #F44336;"></div>
+                                <div style="flex: 1; background: #FF9800;"></div>
+                                <div style="flex: 1; background: #FFC107;"></div>
+                                <div style="flex: 1; background: #2196F3;"></div>
+                                <div style="flex: 1; background: #4CAF50;"></div>
+                            </div>
+                            <!-- Current performance indicator -->
+                            @php
+                                $scorePercent = min(100, max(0, $averageScore));
+                                $indicatorPosition = ($scorePercent / 100) * 100;
+                            @endphp
+                            <div style="position: absolute; left: {{ $indicatorPosition }}%; top: -3px; width: 16px; height: 16px; background: {{ $perfLevel['color'] ?? '#1976D2' }}; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transform: translateX(-50%); border: 3px solid white;"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 4px;">
+                            <div style="text-align: center; flex: 1;">
+                                <span style="font-size: 12px; color: var(--muted);">F (0-49)</span>
+                            </div>
+                            <div style="text-align: center; flex: 1;">
+                                <span style="font-size: 12px; color: var(--muted);">D (50-59)</span>
+                            </div>
+                            <div style="text-align: center; flex: 1;">
+                                <span style="font-size: 12px; color: var(--muted);">C (60-69)</span>
+                            </div>
+                            <div style="text-align: center; flex: 1;">
+                                <span style="font-size: 12px; color: var(--muted);">B (70-79)</span>
+                            </div>
+                            <div style="text-align: center; flex: 1;">
+                                <span style="font-size: 12px; color: var(--muted);">A (80-100)</span>
+                            </div>
+                        </div>
+                    </div>
+                @endif
             </div>
 
             <div class="section">
@@ -280,6 +518,9 @@
                                         <td>
                                             @if($assignment->score !== null)
                                                 <strong>{{ $assignment->score }} / 100</strong>
+                                                @if($assignment->grade)
+                                                    <span style="font-weight: 600; color: var(--color-primary); margin-left: 8px;">({{ $assignment->grade }})</span>
+                                                @endif
                                             @else
                                                 <span style="color: var(--muted);">-</span>
                                             @endif
@@ -298,8 +539,43 @@
                     </div>
                 @endif
             </div>
-        </main>
-    </div>
+    </main>
+</div>
+
+<script>
+    function toggleDropdown(element) {
+        const dropdown = element.nextElementSibling;
+        const isActive = dropdown.classList.contains('active');
+        
+        // Close all dropdowns
+        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+            menu.classList.remove('active');
+        });
+        document.querySelectorAll('.dropdown-toggle').forEach(toggle => {
+            toggle.classList.remove('active');
+        });
+        
+        // Toggle current dropdown
+        if (!isActive) {
+            dropdown.classList.add('active');
+            element.classList.add('active');
+        }
+    }
+
+    // Keep dropdown open if current page is a course page
+    document.addEventListener('DOMContentLoaded', function() {
+        const dropdown = document.getElementById('coursesDropdown');
+        const toggle = dropdown ? dropdown.previousElementSibling : null;
+        
+        @if(request()->routeIs('student.course.show'))
+            // Open dropdown and highlight active course when viewing a course
+            if (dropdown && toggle) {
+                dropdown.classList.add('active');
+                toggle.classList.add('active');
+            }
+        @endif
+    });
+</script>
 </body>
 </html>
 

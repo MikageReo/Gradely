@@ -52,7 +52,8 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <h2>GRADELY</h2>
-            <a href="{{ route('admin.register_users') }}">👥 Register Users</a>
+            <a href="{{ route('admin.new_student_registration') }}">👤 Register Student</a>
+            <a href="{{ route('admin.new_lecturer_registration') }}">👨‍🏫 Register Lecturer</a>
             <a href="{{ route('profile.view') }}">👤 Profile</a>
             <a href="{{ url('/logout') }}" class="logout">🚪 Logout</a>
         </aside>
@@ -75,42 +76,26 @@
                 </div>
             </div>
 
-            <div class="cards">
-                <div class="card" id="users">
-                    <h3>👥 Manage Users</h3>
-                    <p>Add, edit, or remove students and lecturers. <a href="{{ route('admin.create_user') }}">Register User</a></p>
-                </div>
-                <div class="card" id="courses">
-                    <h3>📚 Manage Courses</h3>
-                    <p>Create, update, or delete courses and assign lecturers. <a href="{{ route('admin.courses.index') }}" style="color: var(--color-primary); text-decoration: underline;">Manage Courses</a></p>
-                </div>
-                <div class="card" id="assignments">
-                    <h3>📝 Manage Assignments</h3>
-                    <p>Oversee all assignments, deadlines, and submissions for all courses.</p>
-                </div>
-                <div class="card" id="reports">
-                    <h3>📊 Reports</h3>
-                    <p>View system usage, student performance, and export data.</p>
-                </div>
-                <div class="card" id="settings">
-                    <h3>⚙️ Settings</h3>
-                    <p>Update system settings, roles, and permissions.</p>
-                </div>
-            </div>
-        </main>
+<div class="cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+    <div class="card" style="background: var(--white); padding: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.06);">
+        <h3 style="color: var(--color-primary); margin-bottom: 10px;">👥 Manage Users</h3>
+        <p style="color: var(--muted); font-size: 14px; line-height: 1.6;">Add, edit, or remove students and lecturers. <a href="{{ route('admin.create_user') }}" style="color: var(--color-primary); text-decoration: underline;">Register User</a></p>
     </div>
-
-    <script>
-        // Auto-hide success alert after 4 seconds
-        const successAlert = document.getElementById('successAlert');
-        if (successAlert) {
-            setTimeout(() => {
-                successAlert.classList.add('hide');
-                setTimeout(() => {
-                    successAlert.remove();
-                }, 300);
-            }, 4000);
-        }
-    </script>
-</body>
-</html>
+    <div class="card" style="background: var(--white); padding: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.06);">
+        <h3 style="color: var(--color-primary); margin-bottom: 10px;">📚 Manage Courses</h3>
+        <p style="color: var(--muted); font-size: 14px; line-height: 1.6;">Create, update, or delete courses and assign lecturers. <a href="{{ route('admin.courses.index') }}" style="color: var(--color-primary); text-decoration: underline;">Manage Courses</a></p>
+    </div>
+    <div class="card" style="background: var(--white); padding: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.06);">
+        <h3 style="color: var(--color-primary); margin-bottom: 10px;">📝 Manage Assignments</h3>
+        <p style="color: var(--muted); font-size: 14px; line-height: 1.6;">Oversee all assignments, deadlines, and submissions for all courses.</p>
+    </div>
+    <div class="card" style="background: var(--white); padding: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.06);">
+        <h3 style="color: var(--color-primary); margin-bottom: 10px;">📊 Reports</h3>
+        <p style="color: var(--muted); font-size: 14px; line-height: 1.6;">View system usage, student performance, and export data.</p>
+    </div>
+    <div class="card" style="background: var(--white); padding: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.06);">
+        <h3 style="color: var(--color-primary); margin-bottom: 10px;">⚙️ Settings</h3>
+        <p style="color: var(--muted); font-size: 14px; line-height: 1.6;">Update system settings, roles, and permissions.</p>
+    </div>
+</div>
+@endsection

@@ -17,6 +17,7 @@ class Submissions extends Model
         'submitted_at',
         'status',
         'score',
+        'grade',
         'lecturer_feedback',
         'marked_at',
     ];

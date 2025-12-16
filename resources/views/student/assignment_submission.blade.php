@@ -26,12 +26,86 @@
         body {
             font-family: var(--font);
             background: var(--bg);
-            padding: 20px;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .layout {
+            display: flex;
             min-height: 100vh;
         }
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
+        /* Sidebar (student-style navigation) */
+        .sidebar {
+            width: 250px;
+            background: var(--color-primary);
+            color: var(--white);
+            padding: 20px;
+            box-shadow: 2px 0 6px rgba(0,0,0,0.1);
+        }
+        .sidebar h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid rgba(255,255,255,0.3);
+            padding-bottom: 10px;
+            letter-spacing: 0.08em;
+        }
+        .sidebar-profile {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            padding: 16px 14px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .sidebar-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.18);
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+        }
+        .sidebar-student-name {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 2px;
+        }
+        .sidebar-student-email {
+            font-size: 12px;
+            opacity: 0.9;
+            word-break: break-all;
+        }
+        .sidebar-nav-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            opacity: 0.7;
+            margin: 6px 0 4px;
+        }
+        .sidebar a {
+            display: block;
+            color: var(--white);
+            text-decoration: none;
+            padding: 10px 12px;
+            margin: 8px 0;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .sidebar a:hover,
+        .sidebar a.active {
+            background: rgba(255,255,255,0.1);
+        }
+        .sidebar .logout {
+            background: rgba(255,0,0,0.3);
+            margin-top: 30px;
+        }
+        .sidebar .logout:hover {
+            background: rgba(255,0,0,0.5);
+        }
+        .main-content {
+            flex: 1;
+            padding: 24px;
         }
         .assignment-card {
             background: var(--white);
@@ -367,15 +441,20 @@
         .success-alert.hide {
             animation: slideUp 0.3s ease-out;
         }
-        .back-link {
-            display: inline-block;
-            margin-bottom: 20px;
-            color: var(--color-primary);
-            text-decoration: none;
-            font-weight: 500;
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
         }
-        .back-link:hover {
-            text-decoration: underline;
+        .page-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #1f2933;
+        }
+        .page-breadcrumb {
+            font-size: 13px;
+            color: var(--muted);
         }
         .submitted-files {
             margin-top: 15px;
@@ -445,6 +524,18 @@
             text-decoration: none;
         }
         @media (max-width: 768px) {
+            .layout {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+            .main-content {
+                padding: 16px;
+            }
             .assignment-info {
                 grid-template-columns: 1fr;
             }
@@ -455,16 +546,65 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        @if (session('success'))
-            <div class="success-alert" id="successAlert">
-                {{ session('success') }}
+    @php
+        $role = Auth::user()->role ?? 'student';
+        $dashboardUrl = $role === 'student'
+            ? route('student.dashboard')
+            : ($role === 'lecturer' ? route('lecturer.dashboard') : route('admin.dashboard'));
+    @endphp
+    <div class="layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h2>GRADELY</h2>
+            <div class="sidebar-profile">
+                <div class="sidebar-avatar">
+                    <span>👤</span>
+                </div>
+                <div class="sidebar-student-name">
+                    {{ Auth::user()->name }}
+                </div>
+                <div class="sidebar-student-email">
+                    {{ Auth::user()->email }}
+                </div>
             </div>
-        @endif
+            <div class="sidebar-nav-label">Navigation</div>
+            <a href="{{ $dashboardUrl }}">🏠 Dashboard</a>
+            @if($role === 'student')
+                <a href="{{ route('student.dashboard') }}#courses">📚 My Courses</a>
+                @if(isset($assignment->course))
+                    <a href="{{ route('student.course.show', $assignment->course->id) }}">📘 This Course</a>
+                @endif
+            @elseif($role === 'lecturer')
+                <a href="{{ route('lecturer.courses') }}">📚 My Courses</a>
+                @if(isset($assignment->course))
+                    <a href="{{ route('lecturer.course.show', $assignment->course->id) }}">📘 This Course</a>
+                @endif
+            @endif
+            <a href="{{ route('profile.view') }}">👤 Profile</a>
+            <a href="{{ url('/logout') }}" class="logout">🚪 Logout</a>
+        </aside>
 
-        <a href="{{ Auth::user()->role === 'student' ? route('student.dashboard') : route('lecturer.dashboard') }}" class="back-link">← Back to Dashboard</a>
+        <!-- Main Content -->
+        <main class="main-content">
+            @if (session('success'))
+                <div class="success-alert" id="successAlert">
+                    {{ session('success') }}
+                </div>
+            @endif
 
-        <div class="assignment-card">
+            <div class="page-header">
+                <div>
+                    <div class="page-title">Assignment Submission</div>
+                    <div class="page-breadcrumb">
+                        {{ $assignment->course->course_code ?? '' }} · {{ $assignment->course->course_name ?? 'Course' }}
+                    </div>
+                </div>
+                <div style="font-size: 13px; color: var(--muted);">
+                    Due: {{ $assignment->due_date ? $assignment->due_date->format('M d, Y g:ia') : 'No due date' }}
+                </div>
+            </div>
+
+            <div class="assignment-card">
             <div class="assignment-header">
                 <div class="assignment-icon">📝</div>
                 <h1 class="assignment-title">Assignment: {{ $assignment->title }}</h1>
@@ -578,9 +718,53 @@
                     @if($submission->score !== null)
                         <div style="margin-top: 15px; padding: 10px; background: #E8F5E9; border-radius: 4px;">
                             <strong>Current Grade:</strong> {{ $submission->score }} / 100
+                            @if($submission->grade)
+                                <strong style="margin-left: 15px;">Letter Grade:</strong> <span style="font-size: 18px; font-weight: bold; color: var(--color-primary);">{{ $submission->grade }}</span>
+                            @endif
                             @if($submission->marked_at)
                                 <br><small style="color: var(--muted);">Marked on: {{ $submission->marked_at->format('M d, Y g:ia') }}</small>
                             @endif
+                        </div>
+                    @endif
+                </div>
+            @endif
+
+            @if(Auth::user()->role === 'student' && $submission && $submission->status === 'marked')
+                <div style="margin-top: 30px; padding: 20px; background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); border-radius: 8px; border: 2px solid #4CAF50;">
+                    <h3 style="margin-bottom: 15px; color: #2E7D32; font-size: 20px; display: flex; align-items: center; gap: 10px;">
+                        <svg width="24" height="24" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        Your Grade
+                    </h3>
+                    <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+                        <div style="padding: 15px; background: white; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            <div style="font-size: 14px; color: var(--muted); margin-bottom: 5px;">Score</div>
+                            <div style="font-size: 28px; font-weight: bold; color: #2E7D32;">
+                                {{ $submission->score ?? 'N/A' }} / 100
+                            </div>
+                        </div>
+                        @if($submission->grade)
+                        <div style="padding: 15px; background: white; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            <div style="font-size: 14px; color: var(--muted); margin-bottom: 5px;">Letter Grade</div>
+                            <div style="font-size: 36px; font-weight: bold; color: var(--color-primary);">
+                                {{ $submission->grade }}
+                            </div>
+                        </div>
+                        @endif
+                    </div>
+                    @if($submission->marked_at)
+                        <div style="margin-top: 15px; font-size: 14px; color: var(--muted);">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20" style="vertical-align: middle; margin-right: 5px;">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                            </svg>
+                            Marked on: {{ $submission->marked_at->format('M d, Y g:ia') }}
+                        </div>
+                    @endif
+                    @if($submission->lecturer_feedback)
+                        <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 6px; border-left: 4px solid var(--color-primary);">
+                            <div style="font-weight: 600; margin-bottom: 8px; color: #222;">Lecturer Feedback:</div>
+                            <div style="color: #333; line-height: 1.6; white-space: pre-wrap;">{{ $submission->lecturer_feedback }}</div>
                         </div>
                     @endif
                 </div>

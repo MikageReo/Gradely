@@ -13,6 +13,29 @@ use Illuminate\Support\Facades\File;
 class LecturerController extends Controller
 {
     /**
+     * Display lecturer dashboard with all courses
+     */
+    public function dashboard()
+    {
+        $user = Auth::user();
+        
+        if ($user->role !== 'lecturer') {
+            abort(403, 'Unauthorized');
+        }
+
+        // Get courses through course_lecturer
+        $courses = Courses::whereHas('courseLecturers', function($query) use ($user) {
+            $query->where('lecturer_id', $user->id);
+        })
+        ->withCount(['assignments'])
+        ->get();
+
+        return view('lecturer.lecturer_dashboard', [
+            'courses' => $courses,
+        ]);
+    }
+
+    /**
      * Display all courses for the logged-in lecturer
      */
     public function courses()
@@ -78,6 +101,59 @@ class LecturerController extends Controller
             'totalSubmissions' => $totalSubmissions,
             'pendingGrading' => $pendingGrading,
             'completed' => $completed,
+        ]);
+    }
+
+    /**
+     * Show create assignment page
+     */
+    public function createAssignment($courseId)
+    {
+        $user = Auth::user();
+        if ($user->role !== 'lecturer') {
+            abort(403, 'Unauthorized');
+        }
+
+        // Verify course belongs to lecturer through course_lecturer
+        $course = Courses::where('id', $courseId)
+            ->whereHas('courseLecturers', function($query) use ($user) {
+                $query->where('lecturer_id', $user->id);
+            })
+            ->firstOrFail();
+
+        return view('lecturer.assignment_form', [
+            'course' => $course,
+            'assignment' => null,
+            'mode' => 'create',
+        ]);
+    }
+
+    /**
+     * Show edit assignment page
+     */
+    public function editAssignment($courseId, $assignmentId)
+    {
+        $user = Auth::user();
+        if ($user->role !== 'lecturer') {
+            abort(403, 'Unauthorized');
+        }
+
+        // Verify course belongs to lecturer through course_lecturer
+        $course = Courses::where('id', $courseId)
+            ->whereHas('courseLecturers', function($query) use ($user) {
+                $query->where('lecturer_id', $user->id);
+            })
+            ->firstOrFail();
+
+        $assignment = Assignments::where('id', $assignmentId)
+            ->where('course_id', $courseId)
+            ->where('lecturer_id', $user->id)
+            ->firstOrFail();
+
+        return view('lecturer.assignment_form', [
+            'course' => $course,
+            'assignment' => $assignment,
+            'mode' => 'edit',
         ]);
     }
 

@@ -8,6 +8,10 @@ use App\Models\CourseStudent;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
+use App\Mail\CourseEnrolledMail;
+use Illuminate\Support\Str;
 
 class AdminCourseController extends Controller
 {
@@ -229,7 +233,8 @@ class AdminCourseController extends Controller
         ]);
 
         // Verify course_lecturer belongs to this course
-        $courseLecturer = CourseLecturer::where('id', $data['course_lecturer_id'])
+        $courseLecturer = CourseLecturer::with('lecturer')
+            ->where('id', $data['course_lecturer_id'])
             ->where('course_id', $courseId)
             ->firstOrFail();
 
@@ -266,6 +271,16 @@ class AdminCourseController extends Controller
                 'student_id' => $studentId,
                 'course_lecturer_id' => $data['course_lecturer_id'],
             ]);
+
+            // Send enrollment email
+            try {
+                $course = Courses::find($courseId);
+                Mail::to($student->email)->send(new CourseEnrolledMail($student, $course, $courseLecturer));
+            } catch (\Exception $e) {
+                // Log error but don't fail the enrollment
+                Log::error('Failed to send enrollment email to ' . $student->email . ': ' . $e->getMessage());
+            }
+
             $enrolled++;
         }
 
@@ -294,7 +309,8 @@ class AdminCourseController extends Controller
             'course_lecturer_id' => 'required|exists:course_lecturer,id',
         ]);
 
-        $courseLecturer = CourseLecturer::where('id', $request->course_lecturer_id)
+        $courseLecturer = CourseLecturer::with('lecturer')
+            ->where('id', $request->course_lecturer_id)
             ->where('course_id', $courseId)
             ->firstOrFail();
 
@@ -339,6 +355,16 @@ class AdminCourseController extends Controller
                     'student_id' => $student->id,
                     'course_lecturer_id' => $courseLecturer->id,
                 ]);
+
+                // Send enrollment email
+                try {
+                    $course = Courses::find($courseId);
+                    Mail::to($student->email)->send(new CourseEnrolledMail($student, $course, $courseLecturer));
+                } catch (\Exception $e) {
+                    // Log error but don't fail the enrollment
+                    Log::error('Failed to send enrollment email to ' . $student->email . ': ' . $e->getMessage());
+                }
+
                 $enrolled++;
             }
         }
@@ -374,5 +400,34 @@ class AdminCourseController extends Controller
         $enrollment->delete();
 
         return back()->with('success', 'Student enrollment removed successfully!');
+    }
+
+    /**
+     * Download CSV template for bulk student enrollment
+     */
+    public function downloadEnrollmentTemplate($courseId)
+    {
+        if (Auth::user()->role !== 'admin') {
+            abort(403, 'Unauthorized');
+        }
+
+        $course = Courses::findOrFail($courseId);
+        $filename = 'student_enrollment_template_' . Str::slug($course->course_code) . '.csv';
+        
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $callback = function() {
+            $file = fopen('php://output', 'w');
+            
+            // Add header row only
+            fputcsv($file, ['Email']);
+            
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }
