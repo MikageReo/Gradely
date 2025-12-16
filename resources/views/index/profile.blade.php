@@ -18,7 +18,7 @@
     <div class="container">
         <h2>Edit Profile</h2>
         @if ($errors->any())
-            <div class="alert">
+            <div class="alert alert-danger" id="flash-message">
                 <ul>
                     @foreach ($errors->all() as $error)
                         <li>{{ $error }}</li>
@@ -26,12 +26,27 @@
                 </ul>
             </div>
         @endif
+        @if (session('success'))
+            <div class="alert alert-success" id="flash-message">{{ session('success') }}</div>
+        @endif
+        <script>
+            setTimeout(function() {
+                var msg = document.getElementById('flash-message');
+                if (msg) msg.style.display = 'none';
+            }, 5000);
+        </script>
+        <style>
+        .alert-success { background: #d4edda !important; color: #155724 !important; }
+        .alert-danger { background: #f8d7da !important; color: #721c24 !important; }
+        </style>
         <form method="POST" action="{{ route('profile.update') }}">
             @csrf
             <label for="name">Full Name</label>
             <input type="text" id="name" name="name" value="{{ Auth::user()->name }}" required>
             <label for="email">Email</label>
             <input type="email" id="email" name="email" value="{{ Auth::user()->email }}" required>
+            <label for="current_password">Current Password</label>
+            <input type="password" id="current_password" name="current_password" required>
             <label for="password">New Password (leave blank to keep current)</label>
             <input type="password" id="password" name="password">
             <label for="password_confirmation">Confirm New Password</label>

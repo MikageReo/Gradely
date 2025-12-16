@@ -23,13 +23,25 @@
         
         {{-- show validation errors --}}
         @if ($errors->any())
-            <div class="error">
+            <div class="error" id="flash-message">
                 <ul style="margin:0;padding-left:18px;">
                     @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
+                        <li>
+                            @if ($error === 'Invalid credentials for the selected role.')
+                                Wrong credentials. Please check email, password, and role.
+                            @else
+                                {{ $error }}
+                            @endif
+                        </li>
                     @endforeach
                 </ul>
             </div>
+            <script>
+                setTimeout(function() {
+                    var msg = document.getElementById('flash-message');
+                    if (msg) msg.style.display = 'none';
+                }, 5000);
+            </script>
         @endif
         
         <form method="POST" action="{{ url('/login') }}">

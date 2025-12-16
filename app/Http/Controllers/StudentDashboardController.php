@@ -16,6 +16,9 @@ class StudentDashboardController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
+        if ($user->role !== 'student') {
+            abort(403, 'Unauthorized');
+        }
         // Get course IDs through course_lecturer -> course_student
         $courseIds = Courses::whereHas('courseLecturers.students', function($query) use ($user) {
             $query->where('student_id', $user->id);
@@ -59,7 +62,6 @@ class StudentDashboardController extends Controller
     public function showCourse($courseId, Request $request)
     {
         $user = $request->user();
-        
         if ($user->role !== 'student') {
             abort(403, 'Unauthorized');
         }
