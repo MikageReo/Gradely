@@ -421,7 +421,7 @@
             <div class="section">
                 <div class="section-header">
                     <h2 class="section-title">Assignments</h2>
-                    <button class="btn-primary" onclick="openCreateModal()">+ Create Assignment</button>
+                    <a class="btn-primary" href="{{ route('lecturer.assignment.create', $course->id) }}">+ Create Assignment</a>
                 </div>
                 @if($assignments->count() > 0)
                     <div style="overflow-x: auto;">
@@ -468,7 +468,7 @@
                                         </td>
                                         <td>
                                             <div class="action-buttons">
-                                                <button class="btn-secondary" onclick="openEditModal({{ $assignment->id }}, {{ json_encode($assignment->title) }}, {{ json_encode($assignment->description ?? '') }}, {{ json_encode($assignment->due_date ? $assignment->due_date->format('Y-m-d\TH:i') : '') }}, {{ json_encode($assignment->status) }}, {{ json_encode($assignment->visibility) }}, {{ json_encode($assignment->attachment ? basename($assignment->attachment) : '') }}, {{ json_encode($assignment->attachment ?? '') }})">Edit</button>
+                                                <a class="btn-secondary" href="{{ route('lecturer.assignment.edit', [$course->id, $assignment->id]) }}">Edit</a>
                                                 <form action="{{ route('lecturer.assignment.delete', [$course->id, $assignment->id]) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this assignment?');">
                                                     @csrf
                                                     @method('DELETE')
@@ -507,109 +507,7 @@
                 @endif
             </div>
 
-            <!-- Create Assignment Modal -->
-    <div id="createModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">Create New Assignment</h2>
-                <button class="close" onclick="closeCreateModal()">&times;</button>
-            </div>
-            <form action="{{ route('lecturer.assignment.store', $course->id) }}" method="POST" enctype="multipart/form-data">
-                @csrf
-                <div class="form-group">
-                    <label class="form-label" for="title">Title *</label>
-                    <input type="text" class="form-control" id="title" name="title" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="description">Description</label>
-                    <textarea class="form-control" id="description" name="description" rows="4"></textarea>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="due_date">Due Date</label>
-                    <input type="datetime-local" class="form-control" id="due_date" name="due_date">
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="status">Status *</label>
-                    <select class="form-control" id="status" name="status" required>
-                        <option value="open">Open</option>
-                        <option value="close">Close</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="visibility">Visibility *</label>
-                    <select class="form-control" id="visibility" name="visibility" required>
-                        <option value="hidden">Hidden</option>
-                        <option value="published">Published</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="attachment">Attachment</label>
-                    <input type="file" class="form-control" id="attachment" name="attachment" accept=".pdf,.doc,.docx,.txt">
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn-secondary" onclick="closeCreateModal()">Cancel</button>
-                    <button type="submit" class="btn-primary">Create Assignment</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Edit Assignment Modal -->
-    <div id="editModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">Edit Assignment</h2>
-                <button class="close" onclick="closeEditModal()">&times;</button>
-            </div>
-            <form id="editForm" method="POST" enctype="multipart/form-data">
-                @csrf
-                @method('PUT')
-                <div class="form-group">
-                    <label class="form-label" for="edit_title">Title *</label>
-                    <input type="text" class="form-control" id="edit_title" name="title" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="edit_description">Description</label>
-                    <textarea class="form-control" id="edit_description" name="description" rows="4"></textarea>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="edit_due_date">Due Date</label>
-                    <input type="datetime-local" class="form-control" id="edit_due_date" name="due_date">
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="edit_status">Status *</label>
-                    <select class="form-control" id="edit_status" name="status" required>
-                        <option value="open">Open</option>
-                        <option value="close">Close</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="edit_visibility">Visibility *</label>
-                    <select class="form-control" id="edit_visibility" name="visibility" required>
-                        <option value="hidden">Hidden</option>
-                        <option value="published">Published</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="edit_attachment">Attachment</label>
-                    <div id="current-attachment" style="margin-bottom: 8px; padding: 8px; background: #f5f5f5; border-radius: 4px; display: none;">
-                        <div style="display: flex; align-items: center; justify-content: space-between;">
-                            <span style="font-size: 13px; color: var(--muted);">
-                                <span style="font-weight: 500;">Current:</span> <span id="current-attachment-name"></span>
-                            </span>
-                            <a href="#" id="current-attachment-link" target="_blank" style="font-size: 12px; color: var(--color-primary); text-decoration: none;">View</a>
-                        </div>
-                    </div>
-                    <input type="file" class="form-control" id="edit_attachment" name="attachment" accept=".pdf,.doc,.docx,.txt">
-                    <small style="display: block; margin-top: 4px; color: var(--muted); font-size: 12px;">Leave empty to keep current attachment, or select a new file to replace it.</small>
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn-secondary" onclick="closeEditModal()">Cancel</button>
-                    <button type="submit" class="btn-primary">Update Assignment</button>
-                </div>
-            </form>
-        </div>
-    </div>
+            <!-- Modals removed in favor of dedicated pages -->
 @endsection
 
 @push('scripts')
@@ -623,63 +521,6 @@
                 successAlert.remove();
             }, 300);
         }, 4000);
-    }
-
-    // Create Modal Functions
-    function openCreateModal() {
-        document.getElementById('createModal').style.display = 'block';
-    }
-
-    function closeCreateModal() {
-        document.getElementById('createModal').style.display = 'none';
-        document.querySelector('#createModal form').reset();
-    }
-
-    // Edit Modal Functions
-    function openEditModal(id, title, description, dueDate, status, visibility, attachmentName, attachmentPath) {
-        document.getElementById('edit_title').value = title;
-        document.getElementById('edit_description').value = description;
-        document.getElementById('edit_due_date').value = dueDate;
-        document.getElementById('edit_status').value = status;
-        document.getElementById('edit_visibility').value = visibility;
-        document.getElementById('editForm').action = '{{ route("lecturer.assignment.update", [$course->id, ":id"]) }}'.replace(':id', id);
-        
-        // Handle attachment display
-        const currentAttachmentDiv = document.getElementById('current-attachment');
-        const currentAttachmentName = document.getElementById('current-attachment-name');
-        const currentAttachmentLink = document.getElementById('current-attachment-link');
-        
-        if (attachmentPath && attachmentPath !== '' && attachmentPath !== 'null') {
-            currentAttachmentDiv.style.display = 'block';
-            currentAttachmentName.textContent = attachmentName || 'Current attachment';
-            // Build the public URL - attachmentPath is relative to public folder (e.g., assignments/filename.pdf)
-            currentAttachmentLink.href = '{{ url("/") }}/' + attachmentPath;
-        } else {
-            currentAttachmentDiv.style.display = 'none';
-            currentAttachmentLink.href = '#';
-        }
-        
-        // Reset file input
-        document.getElementById('edit_attachment').value = '';
-        
-        document.getElementById('editModal').style.display = 'block';
-    }
-
-    function closeEditModal() {
-        document.getElementById('editModal').style.display = 'none';
-        document.getElementById('editForm').reset();
-    }
-
-    // Close modals when clicking outside
-    window.onclick = function(event) {
-        const createModal = document.getElementById('createModal');
-        const editModal = document.getElementById('editModal');
-        if (event.target == createModal) {
-            closeCreateModal();
-        }
-        if (event.target == editModal) {
-            closeEditModal();
-        }
     }
 </script>
 @endpush

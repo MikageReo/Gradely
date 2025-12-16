@@ -106,6 +106,59 @@ class LecturerController extends Controller
     }
 
     /**
+     * Show create assignment page
+     */
+    public function createAssignment($courseId)
+    {
+        $user = Auth::user();
+        if ($user->role !== 'lecturer') {
+            abort(403, 'Unauthorized');
+        }
+
+        // Verify course belongs to lecturer through course_lecturer
+        $course = Courses::where('id', $courseId)
+            ->whereHas('courseLecturers', function($query) use ($user) {
+                $query->where('lecturer_id', $user->id);
+            })
+            ->firstOrFail();
+
+        return view('lecturer.assignment_form', [
+            'course' => $course,
+            'assignment' => null,
+            'mode' => 'create',
+        ]);
+    }
+
+    /**
+     * Show edit assignment page
+     */
+    public function editAssignment($courseId, $assignmentId)
+    {
+        $user = Auth::user();
+        if ($user->role !== 'lecturer') {
+            abort(403, 'Unauthorized');
+        }
+
+        // Verify course belongs to lecturer through course_lecturer
+        $course = Courses::where('id', $courseId)
+            ->whereHas('courseLecturers', function($query) use ($user) {
+                $query->where('lecturer_id', $user->id);
+            })
+            ->firstOrFail();
+
+        $assignment = Assignments::where('id', $assignmentId)
+            ->where('course_id', $courseId)
+            ->where('lecturer_id', $user->id)
+            ->firstOrFail();
+
+        return view('lecturer.assignment_form', [
+            'course' => $course,
+            'assignment' => $assignment,
+            'mode' => 'edit',
+        ]);
+    }
+
+    /**
      * Store a new assignment
      */
     public function storeAssignment(Request $request, $courseId)
