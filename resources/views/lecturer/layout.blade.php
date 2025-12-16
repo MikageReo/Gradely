@@ -254,7 +254,7 @@
             @endif
         });
 
-        // Auto-hide success alert
+        // Auto-hide success alert after 5 seconds
         const successAlert = document.getElementById('successAlert');
         if (successAlert) {
             setTimeout(() => {
@@ -262,7 +262,7 @@
                 setTimeout(() => {
                     successAlert.remove();
                 }, 300);
-            }, 4000);
+            }, 5000);
         }
     </script>
     @stack('scripts')

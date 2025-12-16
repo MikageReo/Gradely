@@ -77,6 +77,19 @@
         </main>
     </div>
 
+    <script>
+        // Auto-hide alerts after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.success-alert, .error-alert');
+            alerts.forEach(function(alert) {
+                setTimeout(() => {
+                    alert.style.transition = 'opacity 0.3s ease-out';
+                    alert.style.opacity = '0';
+                    setTimeout(() => alert.remove(), 300);
+                }, 5000);
+            });
+        });
+    </script>
     @stack('scripts')
 </body>
 </html>

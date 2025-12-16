@@ -98,4 +98,19 @@
         <p style="color: var(--muted); font-size: 14px; line-height: 1.6;">Update system settings, roles, and permissions.</p>
     </div>
 </div>
-@endsection
+        </main>
+    </div>
+
+    <script>
+        // Auto-hide success alert after 5 seconds
+        // Auto-hide success alert after 5 seconds
+        const successAlert = document.getElementById('successAlert');
+        if (successAlert) {
+            setTimeout(() => {
+                successAlert.classList.add('hide');
+                setTimeout(() => successAlert.remove(), 300);
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
