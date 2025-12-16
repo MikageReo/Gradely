@@ -157,7 +157,8 @@ class SubmissionController extends Controller
         }
 
         return redirect()->route('assignment.submission', $assignmentId)
-            ->with('success', 'Assignment submitted successfully!');
+            ->with('success', 'Your assignment files were uploaded and submitted to your lecturer.')
+            ->with('success_type', 'submission');
     }
 
     /**
@@ -199,7 +200,10 @@ class SubmissionController extends Controller
         ]);
 
         return redirect()->route('assignment.submission', $assignmentId)
-            ->with('success', 'Comment added successfully!');
+            ->with('success', $user->role === 'lecturer'
+                ? 'Your reply was sent to the student.'
+                : 'Your question was sent to the lecturer.')
+            ->with('success_type', 'comment');
     }
 
     /**
@@ -238,7 +242,8 @@ class SubmissionController extends Controller
         $submission->save();
 
         return redirect()->route('assignment.submission', $assignmentId)
-            ->with('success', 'Grade and feedback updated successfully!');
+            ->with('success', 'The grade and feedback have been saved for this submission.')
+            ->with('success_type', 'grade');
     }
 
     /**
