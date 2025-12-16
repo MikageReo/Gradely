@@ -4,6 +4,32 @@
 
 @push('styles')
 <style>
+    .header {
+        background: var(--white);
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .header h1 {
+        font-size: 24px;
+        color: #222;
+    }
+    .user-info {
+        text-align: right;
+    }
+    .user-info p {
+        color: var(--muted);
+        font-size: 14px;
+    }
+    .user-name {
+        font-weight: 600;
+        color: #222;
+        font-size: 16px;
+    }
     .page-header {
         margin-bottom: 30px;
     }
@@ -18,11 +44,11 @@
         color: var(--muted);
         font-weight: 400;
     }
-    /* Course Cards */
+    /* Course Cards - Matching Student Dashboard Style */
     .courses-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 24px;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
     }
     .course-card {
         background: var(--white);
@@ -31,7 +57,6 @@
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         transition: transform 0.2s, box-shadow 0.2s;
         cursor: pointer;
-        position: relative;
         height: 200px;
         display: flex;
         flex-direction: column;
@@ -43,20 +68,10 @@
     .course-card-header {
         height: 120px;
         position: relative;
-        background-size: cover;
-        background-position: center;
+        background: linear-gradient(135deg, var(--color-primary) 0%, #1565C0 100%);
         display: flex;
         align-items: center;
         justify-content: center;
-    }
-    .course-card-header::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0,0,0,0.1);
     }
     .course-code {
         position: relative;
@@ -85,52 +100,20 @@
         color: var(--muted);
         margin-bottom: 8px;
     }
-    .course-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
     .course-progress {
         font-size: 13px;
         color: var(--muted);
     }
-    /* Pattern backgrounds */
-    .pattern-purple {
-        background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
-        background-image: 
-            repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.05) 10px, rgba(255,255,255,0.05) 20px),
-            repeating-linear-gradient(-45deg, transparent, transparent 10px, rgba(255,255,255,0.05) 10px, rgba(255,255,255,0.05) 20px);
-    }
-    .pattern-blue {
-        background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%);
-        background-image: 
-            repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.05) 10px, rgba(255,255,255,0.05) 20px),
-            repeating-linear-gradient(-45deg, transparent, transparent 10px, rgba(255,255,255,0.05) 10px, rgba(255,255,255,0.05) 20px);
-    }
-    .pattern-teal {
-        background: linear-gradient(135deg, #00897B 0%, #00695C 100%);
-        background-image: 
-            radial-gradient(circle at 20px 20px, rgba(255,255,255,0.1) 2px, transparent 0),
-            radial-gradient(circle at 60px 60px, rgba(255,255,255,0.1) 2px, transparent 0);
-        background-size: 40px 40px;
-    }
-    .pattern-green {
-        background: linear-gradient(135deg, #43A047 0%, #2E7D32 100%);
-        background-image: 
-            repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.05) 10px, rgba(255,255,255,0.05) 20px);
-    }
-    .pattern-orange {
-        background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
-        background-image: 
-            radial-gradient(circle at 20px 20px, rgba(255,255,255,0.1) 2px, transparent 0);
-        background-size: 40px 40px;
-    }
-    .pattern-red {
-        background: linear-gradient(135deg, #E53935 0%, #C62828 100%);
-        background-image: 
-            repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.05) 10px, rgba(255,255,255,0.05) 20px);
+    @media (max-width: 1024px) {
+        .courses-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
     }
     @media (max-width: 768px) {
+        .header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
         .courses-grid {
             grid-template-columns: 1fr;
         }
@@ -139,6 +122,16 @@
 @endpush
 
 @section('content')
+<div class="header">
+    <div>
+        <h1>Welcome to Your Dashboard</h1>
+    </div>
+    <div class="user-info">
+        <p>Logged in as:</p>
+        <p class="user-name">{{ Auth::user()->name }}</p>
+    </div>
+</div>
+
 <div class="page-header">
     <h1 class="page-title">My courses</h1>
     <p class="page-subtitle">Course overview</p>
@@ -146,17 +139,15 @@
 
 <!-- Course Cards -->
 <div class="courses-grid" id="coursesGrid">
-    @forelse($courses as $index => $course)
+    @forelse($courses as $course)
         @php
-            $patterns = ['pattern-purple', 'pattern-blue', 'pattern-teal', 'pattern-green', 'pattern-orange', 'pattern-red'];
-            $patternClass = $patterns[$index % count($patterns)];
-            // Calculate progress (simplified - you can enhance this based on assignments/submissions)
+            // Calculate progress based on assignments
             $totalAssignments = $course->assignments_count ?? 0;
             $progress = $totalAssignments > 0 ? min(100, ($totalAssignments * 10)) : 0;
         @endphp
         <a href="{{ route('lecturer.course.show', $course->id) }}" style="text-decoration: none; color: inherit;">
             <div class="course-card">
-                <div class="course-card-header {{ $patternClass }}">
+                <div class="course-card-header">
                     <div class="course-code">{{ $course->course_code }}</div>
                 </div>
                 <div class="course-card-body">
@@ -164,9 +155,7 @@
                         <div class="course-title">{{ strtoupper($course->course_name) }}</div>
                         <div class="course-faculty">FACULTY OF COMPUTING</div>
                     </div>
-                    <div class="course-footer">
-                        <span class="course-progress">{{ $progress }}% complete</span>
-                    </div>
+                    <div class="course-progress">{{ $progress }}% complete</div>
                 </div>
             </div>
         </a>

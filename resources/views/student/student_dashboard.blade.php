@@ -39,17 +39,18 @@
         }
         .sidebar h2 {
             font-size: 18px;
-            margin-bottom: 20px;
+            margin-bottom: 32px;
             border-bottom: 2px solid rgba(255,255,255,0.3);
-            padding-bottom: 10px;
+            padding-bottom: 12px;
             letter-spacing: 0.08em;
+            font-weight: 600;
         }
         .sidebar-profile {
             background: rgba(0, 0, 0, 0.1);
             border-radius: 12px;
             padding: 16px 14px;
             text-align: center;
-            margin-bottom: 24px;
+            margin-bottom: 28px;
         }
         .sidebar-avatar {
             width: 64px;
@@ -77,19 +78,80 @@
             text-transform: uppercase;
             letter-spacing: 0.12em;
             opacity: 0.7;
-            margin: 6px 0 4px;
+            margin: 8px 0 8px;
         }
         .sidebar a {
             display: block;
             color: var(--white);
             text-decoration: none;
-            padding: 10px 12px;
-            margin: 8px 0;
-            border-radius: 6px;
-            transition: background 0.2s;
+            padding: 12px 14px;
+            margin: 0 0 12px 0;
+            border-radius: 8px;
+            transition: all 0.2s;
+            font-size: 14px;
         }
-        .sidebar a:hover {
+        .sidebar a:hover, .sidebar a.active {
             background: rgba(255,255,255,0.1);
+            transform: translateX(2px);
+        }
+        /* Dropdown */
+        .dropdown {
+            position: relative;
+            margin: 0 0 12px 0;
+        }
+        .dropdown-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            padding: 12px 14px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        .dropdown-toggle:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateX(2px);
+        }
+        .dropdown-toggle.active {
+            background: rgba(255,255,255,0.15);
+        }
+        .dropdown-toggle::after {
+            content: '▼';
+            font-size: 10px;
+            transition: transform 0.3s;
+        }
+        .dropdown-toggle.active::after {
+            transform: rotate(180deg);
+        }
+        .dropdown-menu {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            margin-left: 12px;
+            margin-top: 8px;
+        }
+        .dropdown-menu.active {
+            max-height: 500px;
+        }
+        .dropdown-menu a {
+            padding: 10px 14px;
+            font-size: 13px;
+            border-left: 2px solid rgba(255,255,255,0.2);
+            margin-left: 12px;
+            margin-bottom: 6px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .dropdown-menu a:hover {
+            background: rgba(255,255,255,0.1);
+            border-left-color: rgba(255,255,255,0.5);
+            transform: translateX(2px);
+        }
+        .dropdown-menu a.active {
+            background: rgba(255,255,255,0.15);
+            border-left-color: var(--white);
         }
         .sidebar .logout {
             background: rgba(255,0,0,0.3);
@@ -307,10 +369,37 @@
                     {{ Auth::user()->email }}
                 </div>
             </div>
-            <div class="sidebar-nav-label">Navigation</div>
-            <a href="#top">🏠 Dashboard</a>
-            <a href="#courses" onclick="document.getElementById('courses').scrollIntoView({behavior: 'smooth'}); return false;">📚 My Courses</a>
-            <a href="{{ route('profile.view') }}">👤 Profile</a>
+            <!-- Dashboard Link -->
+            <a href="{{ route('student.dashboard') }}" class="{{ request()->routeIs('student.dashboard') ? 'active' : '' }}">🏠 Dashboard</a>
+            
+            <!-- My Courses Dropdown -->
+            <div class="dropdown">
+                <div class="dropdown-toggle {{ request()->routeIs('student.course.show') ? 'active' : '' }}" onclick="toggleDropdown(this)">
+                    📚 My Courses
+                </div>
+                <div class="dropdown-menu" id="coursesDropdown">
+                    @php
+                        // Get unique courses enrolled by this student
+                        $studentCourses = \App\Models\Courses::whereHas('courseLecturers.students', function($query) {
+                            $query->where('student_id', Auth::id());
+                        })->distinct()->get();
+                    @endphp
+                    @if($studentCourses->count() > 0)
+                        @foreach($studentCourses as $course)
+                            <a href="{{ route('student.course.show', $course->id) }}" 
+                               class="{{ request()->routeIs('student.course.show') && request()->route('courseId') == $course->id ? 'active' : '' }}">
+                                {{ $course->course_code }} - {{ $course->course_name }}
+                            </a>
+                        @endforeach
+                    @else
+                        <a href="{{ route('student.dashboard') }}#courses" style="opacity: 0.7;">
+                            No courses enrolled
+                        </a>
+                    @endif
+                </div>
+            </div>
+            
+            <a href="{{ route('profile.view') }}" class="{{ request()->routeIs('profile.view') ? 'active' : '' }}">👤 Profile</a>
             <a href="{{ url('/logout') }}" class="logout">🚪 Logout</a>
         </aside>
 
@@ -499,6 +588,45 @@
     </div>
 
     <script>
+        function toggleDropdown(element) {
+            const dropdown = element.nextElementSibling;
+            const isActive = dropdown.classList.contains('active');
+            
+            // Close all dropdowns
+            document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                menu.classList.remove('active');
+            });
+            document.querySelectorAll('.dropdown-toggle').forEach(toggle => {
+                toggle.classList.remove('active');
+            });
+            
+            // Toggle current dropdown
+            if (!isActive) {
+                dropdown.classList.add('active');
+                element.classList.add('active');
+            }
+        }
+
+        // Keep dropdown open if current page is a course page, closed on dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropdown = document.getElementById('coursesDropdown');
+            const toggle = dropdown ? dropdown.previousElementSibling : null;
+            
+            @if(request()->routeIs('student.course.show'))
+                // Open dropdown and highlight active course when viewing a course
+                if (dropdown && toggle) {
+                    dropdown.classList.add('active');
+                    toggle.classList.add('active');
+                }
+            @elseif(request()->routeIs('student.dashboard'))
+                // Close dropdown when on dashboard
+                if (dropdown && toggle) {
+                    dropdown.classList.remove('active');
+                    toggle.classList.remove('active');
+                }
+            @endif
+        });
+
         // Auto-hide success alert after 4 seconds
         const successAlert = document.getElementById('successAlert');
         if (successAlert) {

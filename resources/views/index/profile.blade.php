@@ -6,7 +6,8 @@
     <title>My Profile - GRADELY</title>
     <style>
         :root {
-            --color-primary: #1976D2;
+            --color-primary: {{ Auth::user()->role === 'admin' ? '#C62828' : (Auth::user()->role === 'lecturer' ? '#00897B' : '#1976D2') }};
+            --color-secondary: #00897B;
             --bg: #f4f7f6;
             --muted: #666;
             --white: #fff;
@@ -28,20 +29,24 @@
             color: var(--white);
             padding: 20px;
             box-shadow: 2px 0 6px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
         }
         .sidebar h2 {
             font-size: 18px;
-            margin-bottom: 20px;
+            margin-bottom: 32px;
             border-bottom: 2px solid rgba(255,255,255,0.3);
-            padding-bottom: 10px;
-            letter-spacing: 0.08em;
+            padding-bottom: 12px;
+            font-weight: 600;
         }
         .sidebar-profile {
             background: rgba(0, 0, 0, 0.1);
             border-radius: 12px;
             padding: 16px 14px;
             text-align: center;
-            margin-bottom: 24px;
+            margin-bottom: 28px;
         }
         .sidebar-avatar {
             width: 64px;
@@ -54,12 +59,12 @@
             justify-content: center;
             font-size: 32px;
         }
-        .sidebar-student-name {
+        .sidebar-user-name {
             font-weight: 600;
             font-size: 15px;
             margin-bottom: 2px;
         }
-        .sidebar-student-email {
+        .sidebar-user-email {
             font-size: 12px;
             opacity: 0.9;
             word-break: break-all;
@@ -69,27 +74,89 @@
             text-transform: uppercase;
             letter-spacing: 0.12em;
             opacity: 0.7;
-            margin: 6px 0 4px;
+            margin: 8px 0 8px;
         }
         .sidebar a {
             display: block;
             color: var(--white);
             text-decoration: none;
-            padding: 10px 12px;
-            margin: 8px 0;
-            border-radius: 6px;
-            transition: background 0.2s;
+            padding: 12px 14px;
+            margin: 0 0 12px 0;
+            border-radius: 8px;
+            transition: all 0.2s;
+            font-size: 14px;
         }
         .sidebar a:hover,
         .sidebar a.active {
             background: rgba(255,255,255,0.1);
+            transform: translateX(2px);
         }
         .sidebar .logout {
-            background: rgba(255,0,0,0.3);
-            margin-top: 30px;
+            background: {{ Auth::user()->role === 'admin' ? '#8B0000' : 'rgba(255,0,0,0.3)' }};
+            margin-top: 24px;
         }
         .sidebar .logout:hover {
-            background: rgba(255,0,0,0.5);
+            background: {{ Auth::user()->role === 'admin' ? '#A00000' : 'rgba(255,0,0,0.5)' }};
+            transform: translateX(2px);
+        }
+        /* Dropdown for Lecturer */
+        .dropdown {
+            position: relative;
+            margin: 0 0 12px 0;
+        }
+        .dropdown-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            padding: 12px 14px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        .dropdown-toggle:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateX(2px);
+        }
+        .dropdown-toggle.active {
+            background: rgba(255,255,255,0.15);
+        }
+        .dropdown-toggle::after {
+            content: '▼';
+            font-size: 10px;
+            transition: transform 0.3s;
+        }
+        .dropdown-toggle.active::after {
+            transform: rotate(180deg);
+        }
+        .dropdown-menu {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            margin-left: 12px;
+            margin-top: 8px;
+        }
+        .dropdown-menu.active {
+            max-height: 500px;
+        }
+        .dropdown-menu a {
+            padding: 10px 14px;
+            font-size: 13px;
+            border-left: 2px solid rgba(255,255,255,0.2);
+            margin-left: 12px;
+            margin-bottom: 6px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .dropdown-menu a:hover {
+            background: rgba(255,255,255,0.1);
+            border-left-color: rgba(255,255,255,0.5);
+            transform: translateX(2px);
+        }
+        .dropdown-menu a.active {
+            background: rgba(255,255,255,0.15);
+            border-left-color: var(--white);
         }
         /* Main content */
         .main-content {
@@ -118,7 +185,7 @@
             width: 80px;
             height: 80px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%);
+            background: linear-gradient(135deg, var(--color-primary) 0%, {{ Auth::user()->role === 'admin' ? '#8B0000' : (Auth::user()->role === 'lecturer' ? '#00695C' : '#1565C0') }} 100%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -151,8 +218,8 @@
             align-items: center;
             padding: 6px 12px;
             border-radius: 999px;
-            background: rgba(25, 118, 210, 0.08);
-            color: #0d47a1;
+            background: {{ Auth::user()->role === 'admin' ? 'rgba(198, 40, 40, 0.08)' : (Auth::user()->role === 'lecturer' ? 'rgba(0, 137, 123, 0.08)' : 'rgba(25, 118, 210, 0.08)') }};
+            color: {{ Auth::user()->role === 'admin' ? '#8B0000' : (Auth::user()->role === 'lecturer' ? '#00695C' : '#0d47a1') }};
             font-size: 12px;
             font-weight: 600;
         }
@@ -184,7 +251,7 @@
         input:focus {
             outline: none;
             border-color: var(--color-primary);
-            box-shadow: 0 0 0 1px rgba(25,118,210,0.25);
+            box-shadow: 0 0 0 1px {{ Auth::user()->role === 'admin' ? 'rgba(198, 40, 40, 0.25)' : (Auth::user()->role === 'lecturer' ? 'rgba(0, 137, 123, 0.25)' : 'rgba(25,118,210,0.25)') }};
         }
         button {
             width: 100%;
@@ -198,7 +265,7 @@
             cursor: pointer;
         }
         button:hover {
-            background: #1558a5;
+            background: {{ Auth::user()->role === 'admin' ? '#8B0000' : (Auth::user()->role === 'lecturer' ? '#00695C' : '#1558a5') }};
         }
         .secondary-btn {
             margin-top: 8px;
@@ -222,9 +289,8 @@
             }
             .sidebar {
                 width: 100%;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
+                height: auto;
+                position: relative;
             }
             .main-content {
                 padding: 20px;
@@ -249,31 +315,102 @@
         $dashboardUrl = $role === 'admin'
             ? route('admin.dashboard')
             : ($role === 'lecturer' ? route('lecturer.dashboard') : route('student.dashboard'));
+        
+        // Get lecturer courses for dropdown
+        $lecturerCourses = collect();
+        if ($role === 'lecturer') {
+            $lecturerCourses = \App\Models\Courses::whereHas('courseLecturers', function($query) {
+                $query->where('lecturer_id', Auth::id());
+            })->with('courseLecturers', function($query) {
+                $query->where('lecturer_id', Auth::id());
+            })->get();
+        }
     @endphp
     <div class="container">
         <!-- Sidebar -->
         <aside class="sidebar">
             <h2>GRADELY</h2>
+            
+            <!-- Profile Card -->
             <div class="sidebar-profile">
                 <div class="sidebar-avatar">
                     <span>👤</span>
                 </div>
-                <div class="sidebar-student-name">
+                <div class="sidebar-user-name">
                     {{ Auth::user()->name }}
                 </div>
-                <div class="sidebar-student-email">
+                <div class="sidebar-user-email">
                     {{ Auth::user()->email }}
                 </div>
             </div>
-            <div class="sidebar-nav-label">Navigation</div>
-            <a href="{{ $dashboardUrl }}">🏠 Dashboard</a>
-            @if($role === 'student')
-                <a href="{{ route('student.dashboard') }}#courses">📚 My Courses</a>
-            @elseif($role === 'lecturer')
-                <a href="{{ route('lecturer.courses') }}">📚 My Courses</a>
+            
+            @if($role === 'lecturer')
+                <!-- Dashboard Link -->
+                <a href="{{ route('lecturer.dashboard') }}" class="{{ request()->routeIs('lecturer.dashboard') ? 'active' : '' }}">🏠 Dashboard</a>
+                
+                <!-- My Courses Dropdown -->
+                <div class="dropdown">
+                    <div class="dropdown-toggle {{ request()->routeIs('lecturer.courses') || request()->routeIs('lecturer.course.show') ? 'active' : '' }}" onclick="toggleDropdown(this)">
+                        📚 My Courses
+                    </div>
+                    <div class="dropdown-menu" id="coursesDropdown">
+                        @php
+                            // Get unique courses assigned to this lecturer
+                            $lecturerCourses = \App\Models\Courses::whereHas('courseLecturers', function($query) {
+                                $query->where('lecturer_id', Auth::id());
+                            })->distinct()->get();
+                        @endphp
+                        @if($lecturerCourses->count() > 0)
+                            @foreach($lecturerCourses as $course)
+                                <a href="{{ route('lecturer.course.show', $course->id) }}" 
+                                   class="{{ request()->routeIs('lecturer.course.show') && request()->route('courseId') == $course->id ? 'active' : '' }}">
+                                    {{ $course->course_code }} - {{ $course->course_name }}
+                                </a>
+                            @endforeach
+                        @else
+                            <a href="{{ route('lecturer.courses') }}" style="opacity: 0.7;">
+                                No courses assigned
+                            </a>
+                        @endif
+                    </div>
+                </div>
+            @elseif($role === 'student')
+                <div class="sidebar-nav-label">Navigation</div>
+                <a href="{{ route('student.dashboard') }}" class="{{ request()->routeIs('student.dashboard') ? 'active' : '' }}">🏠 Dashboard</a>
+                
+                <!-- My Courses Dropdown -->
+                <div class="dropdown">
+                    <div class="dropdown-toggle {{ request()->routeIs('student.course.show') ? 'active' : '' }}" onclick="toggleDropdown(this)">
+                        📚 My Courses
+                    </div>
+                    <div class="dropdown-menu" id="coursesDropdown">
+                        @php
+                            // Get unique courses enrolled by this student
+                            $studentCourses = \App\Models\Courses::whereHas('courseLecturers.students', function($query) {
+                                $query->where('student_id', Auth::id());
+                            })->distinct()->get();
+                        @endphp
+                        @if($studentCourses->count() > 0)
+                            @foreach($studentCourses as $course)
+                                <a href="{{ route('student.course.show', $course->id) }}" 
+                                   class="{{ request()->routeIs('student.course.show') && request()->route('courseId') == $course->id ? 'active' : '' }}">
+                                    {{ $course->course_code }} - {{ $course->course_name }}
+                                </a>
+                            @endforeach
+                        @else
+                            <a href="{{ route('student.dashboard') }}#courses" style="opacity: 0.7;">
+                                No courses enrolled
+                            </a>
+                        @endif
+                    </div>
+                </div>
             @elseif($role === 'admin')
-                <a href="{{ route('admin.courses.index') }}">📚 Courses</a>
+                <a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">🏠 Dashboard</a>
+                <a href="{{ route('admin.new_student_registration') }}" class="{{ request()->routeIs('admin.new_student_registration') ? 'active' : '' }}">👤 Register Student</a>
+                <a href="{{ route('admin.new_lecturer_registration') }}" class="{{ request()->routeIs('admin.new_lecturer_registration') ? 'active' : '' }}">👨‍🏫 Register Lecturer</a>
+                <a href="{{ route('admin.courses.index') }}" class="{{ request()->routeIs('admin.courses.*') ? 'active' : '' }}">📚 Manage Courses</a>
             @endif
+            
             <a href="{{ route('profile.view') }}" class="active">👤 Profile</a>
             <a href="{{ url('/logout') }}" class="logout">🚪 Logout</a>
         </aside>
@@ -324,5 +461,28 @@
             </div>
         </main>
     </div>
+
+    @if($role === 'lecturer')
+    <script>
+        function toggleDropdown(element) {
+            const dropdown = element.nextElementSibling;
+            const isActive = dropdown.classList.contains('active');
+            
+            // Close all dropdowns
+            document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                menu.classList.remove('active');
+            });
+            document.querySelectorAll('.dropdown-toggle').forEach(toggle => {
+                toggle.classList.remove('active');
+            });
+            
+            // Toggle current dropdown
+            if (!isActive) {
+                dropdown.classList.add('active');
+                element.classList.add('active');
+            }
+        }
+    </script>
+    @endif
 </body>
 </html>

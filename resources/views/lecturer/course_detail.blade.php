@@ -378,8 +378,8 @@
 @endpush
 
 @section('content')
-            <a href="{{ route('lecturer.courses') }}" class="back-link">
-                ← Back to Courses
+            <a href="{{ route('lecturer.dashboard') }}" class="back-link">
+                ← Back to Dashboard
             </a>
 
             <div class="course-header">

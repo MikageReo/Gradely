@@ -43,32 +43,37 @@
         }
         .sidebar h2 {
             font-size: 18px;
-            margin-bottom: 30px;
+            margin-bottom: 32px;
             border-bottom: 2px solid rgba(255,255,255,0.3);
-            padding-bottom: 10px;
+            padding-bottom: 12px;
+            font-weight: 600;
         }
         .sidebar a {
             display: block;
             color: var(--white);
             text-decoration: none;
-            padding: 10px 12px;
-            margin: 8px 0;
-            border-radius: 6px;
-            transition: background 0.2s;
+            padding: 12px 14px;
+            margin: 0 0 12px 0;
+            border-radius: 8px;
+            transition: all 0.2s;
+            font-size: 14px;
         }
         .sidebar a:hover, .sidebar a.active {
             background: rgba(255,255,255,0.15);
+            transform: translateX(2px);
         }
         .sidebar .logout {
             background: rgba(255,0,0,0.3);
-            margin-top: 30px;
+            margin-top: 24px;
         }
         .sidebar .logout:hover {
             background: rgba(255,0,0,0.5);
+            transform: translateX(2px);
         }
         /* Dropdown */
         .dropdown {
             position: relative;
+            margin: 0 0 12px 0;
         }
         .dropdown-toggle {
             display: flex;
@@ -76,6 +81,17 @@
             align-items: center;
             cursor: pointer;
             user-select: none;
+            padding: 12px 14px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        .dropdown-toggle:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateX(2px);
+        }
+        .dropdown-toggle.active {
+            background: rgba(255,255,255,0.15);
         }
         .dropdown-toggle::after {
             content: '▼';
@@ -89,21 +105,25 @@
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.3s ease-out;
-            margin-left: 10px;
-            margin-top: 5px;
+            margin-left: 12px;
+            margin-top: 8px;
         }
         .dropdown-menu.active {
             max-height: 500px;
         }
         .dropdown-menu a {
-            padding: 8px 12px;
-            font-size: 14px;
+            padding: 10px 14px;
+            font-size: 13px;
             border-left: 2px solid rgba(255,255,255,0.2);
-            margin-left: 10px;
+            margin-left: 12px;
+            margin-bottom: 6px;
+            border-radius: 6px;
+            transition: all 0.2s;
         }
         .dropdown-menu a:hover {
             background: rgba(255,255,255,0.1);
             border-left-color: rgba(255,255,255,0.5);
+            transform: translateX(2px);
         }
         .dropdown-menu a.active {
             background: rgba(255,255,255,0.15);
@@ -152,23 +172,17 @@
                 </div>
                 <div class="dropdown-menu" id="coursesDropdown">
                     @php
+                        // Get unique courses assigned to this lecturer
                         $lecturerCourses = \App\Models\Courses::whereHas('courseLecturers', function($query) {
                             $query->where('lecturer_id', Auth::id());
-                        })->with('courseLecturers', function($query) {
-                            $query->where('lecturer_id', Auth::id());
-                        })->get();
+                        })->distinct()->get();
                     @endphp
                     @if($lecturerCourses->count() > 0)
                         @foreach($lecturerCourses as $course)
-                            @foreach($course->courseLecturers as $cl)
-                                <a href="{{ route('lecturer.course.show', $course->id) }}" 
-                                   class="{{ request()->routeIs('lecturer.course.show') && request()->route('courseId') == $course->id ? 'active' : '' }}">
-                                    {{ $course->course_code }} - {{ $course->course_name }}
-                                    @if($cl->section)
-                                        <small style="opacity: 0.8;">({{ $cl->section }})</small>
-                                    @endif
-                                </a>
-                            @endforeach
+                            <a href="{{ route('lecturer.course.show', $course->id) }}" 
+                               class="{{ request()->routeIs('lecturer.course.show') && request()->route('courseId') == $course->id ? 'active' : '' }}">
+                                {{ $course->course_code }} - {{ $course->course_name }}
+                            </a>
                         @endforeach
                     @else
                         <a href="{{ route('lecturer.courses') }}" style="opacity: 0.7;">

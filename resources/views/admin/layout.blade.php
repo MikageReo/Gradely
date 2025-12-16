@@ -19,13 +19,13 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: var(--font); background: var(--bg); }
         .container { display: flex; min-height: 100vh; }
-        .sidebar { width: 250px; background: var(--color-primary); color: var(--white); padding: 20px; box-shadow: 2px 0 6px rgba(0,0,0,0.1); position: fixed; height: 100vh; overflow-y: auto; }
-        .sidebar h2 { font-size: 18px; margin-bottom: 30px; border-bottom: 2px solid rgba(255,255,255,0.3); padding-bottom: 10px; }
-        .sidebar a { display: block; color: var(--white); text-decoration: none; padding: 10px 12px; margin: 8px 0; border-radius: 6px; transition: background 0.2s; }
-        .sidebar a:hover { background: rgba(255,255,255,0.1); }
+        .sidebar { width: 250px; background: var(--color-primary); color: var(--white); padding: 24px 20px; box-shadow: 2px 0 6px rgba(0,0,0,0.1); position: fixed; height: 100vh; overflow-y: auto; }
+        .sidebar h2 { font-size: 18px; margin-bottom: 32px; border-bottom: 2px solid rgba(255,255,255,0.3); padding-bottom: 12px; font-weight: 600; }
+        .sidebar a { display: block; color: var(--white); text-decoration: none; padding: 12px 14px; margin: 0 0 12px 0; border-radius: 8px; transition: all 0.2s; font-size: 14px; }
+        .sidebar a:hover { background: rgba(255,255,255,0.1); transform: translateX(2px); }
         .sidebar a.active { background: rgba(255,255,255,0.2); font-weight: 600; }
-        .sidebar .logout { background: rgba(255,0,0,0.3); margin-top: 30px; }
-        .sidebar .logout:hover { background: rgba(255,0,0,0.5); }
+        .sidebar .logout { background: #8B0000; margin-top: 24px; }
+        .sidebar .logout:hover { background: #A00000; transform: translateX(2px); }
         .main-content { flex: 1; padding: 30px; margin-left: 250px; }
         .success-alert { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 12px 20px; border-radius: 6px; margin-bottom: 20px; }
         .error-alert { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 12px 20px; border-radius: 6px; margin-bottom: 20px; }
