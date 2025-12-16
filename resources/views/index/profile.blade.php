@@ -417,6 +417,11 @@
 
         <!-- Main Content -->
         <main class="main-content">
+            @if (session('success'))
+                <div class="alert" style="background: #d4edda; color: #155724; margin-bottom: 20px;" id="successAlert">
+                    {{ session('success') }}
+                </div>
+            @endif
             <div class="profile-card">
                 <div class="profile-summary">
                     <div class="profile-avatar">
@@ -451,6 +456,8 @@
                         <input type="text" id="name" name="name" value="{{ Auth::user()->name }}" required>
                         <label for="email">Email</label>
                         <input type="email" id="email" name="email" value="{{ Auth::user()->email }}" required>
+                        <label for="current_password">Current Password *</label>
+                        <input type="password" id="current_password" name="current_password" placeholder="Enter your current password" required>
                         <label for="password">New Password (leave blank to keep current)</label>
                         <input type="password" id="password" name="password" placeholder="Enter a new password">
                         <label for="password_confirmation">Confirm New Password</label>
@@ -462,7 +469,7 @@
         </main>
     </div>
 
-    @if($role === 'lecturer')
+    @if($role === 'lecturer' || $role === 'student')
     <script>
         function toggleDropdown(element) {
             const dropdown = element.nextElementSibling;
@@ -484,5 +491,17 @@
         }
     </script>
     @endif
+
+    <script>
+        // Auto-hide success alert after 5 seconds
+        const successAlert = document.getElementById('successAlert');
+        if (successAlert) {
+            setTimeout(() => {
+                successAlert.style.transition = 'opacity 0.3s ease-out';
+                successAlert.style.opacity = '0';
+                setTimeout(() => successAlert.remove(), 300);
+            }, 5000);
+        }
+    </script>
 </body>
 </html>

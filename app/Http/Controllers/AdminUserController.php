@@ -12,7 +12,6 @@ use Illuminate\Support\Str;
 
 class AdminUserController extends Controller
 {
-
     public function create()
     {
         if (auth()->user()->role !== 'admin') {
@@ -28,23 +27,31 @@ class AdminUserController extends Controller
         }
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email',
+            'email' => 'required|string|email:rfc,dns|max:255|unique:users,email',
+            'password' => 'required|string|min:8|confirmed',
             'role' => 'required|in:student,lecturer',
+        ], [
+            'name.required' => 'Please add the Full Name field.',
+            'email.required' => 'Please add the Email field.',
+            'email.email' => 'Please enter a valid email address (e.g. example@gmail.com).',
+            'email.unique' => 'This email is already taken.',
+            'password.required' => 'Please add the Password field.',
+            'password.min' => 'Password must be at least 8 characters.',
+            'password.confirmed' => 'Password confirmation does not match.',
+            'role.required' => 'Please select a Role.',
+            'role.in' => 'Role must be either Student or Lecturer.',
         ]);
-
-        // Generate random password
-        $plainPassword = Str::random(12);
 
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
-            'password' => Hash::make($plainPassword),
+            'password' => Hash::make($data['password']),
             'role' => $data['role'],
         ]);
 
         // Send welcome email
         try {
-            Mail::to($user->email)->send(new UserRegisteredMail($user, $plainPassword));
+            Mail::to($user->email)->send(new UserRegisteredMail($user, $data['password']));
         } catch (\Exception $e) {
             // Log error but don't fail the registration
             Log::error('Failed to send registration email to ' . $user->email . ': ' . $e->getMessage());
@@ -53,125 +60,90 @@ class AdminUserController extends Controller
         return redirect()->route('admin.dashboard')->with('success', ucfirst($data['role']).' registered successfully!');
     }
 
-    /**
-     * Bulk register users from CSV file
-     */
     public function bulkRegister(Request $request)
     {
         if (auth()->user()->role !== 'admin') {
             abort(403, 'Unauthorized');
         }
-
         $request->validate([
-            'csv_file' => 'required|file|mimes:csv,txt|max:2048',
-            'role' => 'required|in:student,lecturer',
+            'excel' => 'required|file|mimes:xlsx',
         ]);
 
-        $file = $request->file('csv_file');
-        $lines = file($file->getRealPath(), FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        
-        $registered = 0;
-        $skipped = 0;
-        $errors = [];
+        $path = $request->file('excel')->getRealPath();
+        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
+        $sheet = $spreadsheet->getActiveSheet();
+        $rows = $sheet->toArray();
 
-        foreach ($lines as $lineNumber => $line) {
-            // Skip header row if present
-            if ($lineNumber === 0 && (stripos($line, 'name') !== false || stripos($line, 'email') !== false)) {
+        $header = array_map('strtolower', $rows[0]);
+        $nameIdx = array_search('name', $header);
+        $emailIdx = array_search('email', $header);
+        $roleIdx = array_search('role', $header);
+        $created = 0;
+        $errorLines = [];
+        $duplicateLines = [];
+        for ($i = 1; $i < count($rows); $i++) {
+            $row = $rows[$i];
+            $name = $row[$nameIdx] ?? null;
+            $email = $row[$emailIdx] ?? null;
+            $role = $row[$roleIdx] ?? null;
+            $lineNum = $i + 1; // Excel lines are 1-indexed, header is line 1
+            if (!$name || !$email || !in_array($role, ['student', 'lecturer'])) {
+                $errorLines[] = $lineNum;
                 continue;
             }
-
-            // Handle comma-separated values: name,email or just email
-            $parts = array_map('trim', explode(',', $line));
-            
-            $name = '';
-            $email = '';
-
-            if (count($parts) >= 2) {
-                // Format: name,email
-                $name = $parts[0];
-                $email = $parts[1];
-            } elseif (count($parts) === 1) {
-                // Format: email only (generate name from email)
-                $email = $parts[0];
-                $name = explode('@', $email)[0]; // Use part before @ as name
-                $name = ucwords(str_replace(['.', '_', '-'], ' ', $name)); // Format name
-            }
-
-            if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $errors[] = "Line " . ($lineNumber + 1) . ": Invalid email format";
-                continue;
-            }
-
-            // Check if user already exists
             if (User::where('email', $email)->exists()) {
-                $skipped++;
+                $duplicateLines[] = $lineNum;
                 continue;
             }
-
-            // Generate random password
-            $password = Str::random(12);
-            $plainPassword = $password;
-
+            $password = $this->generatePassword();
+            $user = User::create([
+                'name' => $name,
+                'email' => $email,
+                'password' => Hash::make($password),
+                'role' => $role,
+            ]);
+            // Send welcome email
             try {
-                $user = User::create([
-                    'name' => $name ?: 'User',
-                    'email' => $email,
-                    'password' => Hash::make($password),
-                    'role' => $request->role,
-                ]);
-
-                // Send welcome email
-                try {
-                    Mail::to($user->email)->send(new UserRegisteredMail($user, $plainPassword));
-                } catch (\Exception $e) {
-                    Log::error('Failed to send registration email to ' . $user->email . ': ' . $e->getMessage());
-                }
-
-                $registered++;
+                Mail::to($user->email)->send(new UserRegisteredMail($user, $password));
             } catch (\Exception $e) {
-                $errors[] = "Line " . ($lineNumber + 1) . ": " . $e->getMessage();
+                Log::error('Failed to send registration email to ' . $user->email . ': ' . $e->getMessage());
+            }
+            $created++;
+        }
+
+        $messages = [];
+        if ($created > 0) {
+            $messages['success'] = "$created users registered successfully!";
+        }
+        if (count($duplicateLines) > 0) {
+            $firstFive = array_slice($duplicateLines, 0, 5);
+            $lines = implode(', ', $firstFive);
+            $extra = count($duplicateLines) - 5;
+            if ($extra > 0) {
+                $messages['error'] = 'The following lines have emails that already exist: ' . $lines . ' ... and ' . $extra . ' more. You have ' . count($duplicateLines) . ' repeated email fields. Please fix the Excel file.';
+            } else {
+                $messages['error'] = 'The following lines have emails that already exist: ' . $lines . '.';
             }
         }
-
-        $message = "Successfully registered {$registered} " . $request->role . "(s).";
-        if ($skipped > 0) {
-            $message .= " {$skipped} already exist.";
+        if (count($errorLines) > 0) {
+            if (count($errorLines) <= 3) {
+                $lines = implode(', ', $errorLines);
+                $messages['error'] = ($messages['error'] ?? '') . ' The following lines have invalid or missing data: ' . $lines . '.';
+            } else {
+                $messages['error'] = ($messages['error'] ?? '') . ' Some users have invalid data. Please fix the Excel file.';
+            }
         }
-        if (count($errors) > 0) {
-            $errorList = count($errors) > 5 ? implode(', ', array_slice($errors, 0, 5)) . ' and ' . (count($errors) - 5) . ' more' : implode(', ', $errors);
-            return back()->with('partial_success', $message)->withErrors(['bulk_errors' => $errorList]);
-        }
-
-        return back()->with('success', $message);
+        return redirect()->route('admin.register_users')->with($messages);
     }
 
-    /**
-     * Download CSV template for bulk registration
-     */
-    public function downloadTemplate(Request $request)
+    private function generatePassword($length = 10)
     {
-        if (auth()->user()->role !== 'admin') {
-            abort(403, 'Unauthorized');
+        $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        $password = '';
+        for ($i = 0; $i < $length; $i++) {
+            $password .= $chars[random_int(0, strlen($chars) - 1)];
         }
-
-        $role = $request->get('role', 'student'); // student or lecturer
-        
-        $filename = $role === 'lecturer' ? 'lecturer_registration_template.csv' : 'student_registration_template.csv';
-        
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-        ];
-
-        $callback = function() {
-            $file = fopen('php://output', 'w');
-            
-            // Add header row only
-            fputcsv($file, ['Name', 'Email']);
-            
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        return $password;
     }
 }
+

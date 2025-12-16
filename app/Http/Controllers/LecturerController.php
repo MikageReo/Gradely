@@ -64,7 +64,6 @@ class LecturerController extends Controller
     public function showCourse($courseId)
     {
         $user = Auth::user();
-        
         if ($user->role !== 'lecturer') {
             abort(403, 'Unauthorized');
         }

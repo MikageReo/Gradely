@@ -21,6 +21,21 @@ Route::get('/login', function () {
 
 // Protected Dashboard Routes (require authentication)
 Route::middleware('auth')->group(function () {
+            // Admin: Register Users (manual and bulk)
+            Route::get('/admin/register-users', function () {
+                if (auth()->user()->role !== 'admin') {
+                    abort(403, 'Unauthorized');
+                }
+                return view('admin.register_users');
+            })->name('admin.register_users');
+
+            // Manual registration handler
+            Route::post('/admin/register-users/manual', [\App\Http\Controllers\AdminUserController::class, 'store'])
+                ->name('admin.register_users.manual');
+
+            // Bulk registration handler (Excel)
+            Route::post('/admin/register-users/bulk', [\App\Http\Controllers\AdminUserController::class, 'bulkRegister'])
+                ->name('admin.register_users.bulk');
         // Profile view and update
         Route::get('/profile', function () {
             return view('index.profile');
@@ -30,9 +45,22 @@ Route::middleware('auth')->group(function () {
             $user = auth()->user();
             $data = $request->validate([
                 'name' => 'required|string|max:255',
-                'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+                'email' => 'required|string|email:rfc|max:255|unique:users,email,' . $user->id,
+                'current_password' => 'required',
                 'password' => 'nullable|string|min:8|confirmed',
+            ], [
+                'name.required' => 'Please add your full name.',
+                'email.required' => 'Please add your email address.',
+                'email.email' => 'Please enter a valid email address (e.g. example@gmail.com).',
+                'email.unique' => 'This email is already taken.',
+                'current_password.required' => 'Please enter your current password.',
+                'password.min' => 'New password must be at least 8 characters.',
+                'password.confirmed' => 'New password confirmation does not match.',
             ]);
+            // Check current password
+            if (!\Illuminate\Support\Facades\Hash::check($data['current_password'], $user->password)) {
+                return back()->withErrors(['current_password' => 'Current password is incorrect.'])->withInput();
+            }
             $user->name = $data['name'];
             $user->email = $data['email'];
             if (!empty($data['password'])) {
