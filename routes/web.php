@@ -124,6 +124,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/lecturer/course/{courseId}', [LecturerController::class, 'showCourse'])
         ->name('lecturer.course.show');
 
+    Route::get('/lecturer/course/{courseId}/assignment/create', [LecturerController::class, 'createAssignment'])
+        ->name('lecturer.assignment.create');
+
+    Route::get('/lecturer/course/{courseId}/assignment/{assignmentId}/edit', [LecturerController::class, 'editAssignment'])
+        ->name('lecturer.assignment.edit');
+
     // Lecturer Assignment Management
     Route::post('/lecturer/course/{courseId}/assignment', [LecturerController::class, 'storeAssignment'])
         ->name('lecturer.assignment.store');
