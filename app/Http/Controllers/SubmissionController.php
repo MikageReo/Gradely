@@ -17,8 +17,12 @@ class SubmissionController extends Controller
 {
     /**
      * Display the assignment submission page
+     * Access control:
+     * - Students: can only view their own submission for assignments in enrolled courses
+     * - Lecturers: can view any student's submission for assignments they created
+     * - Requires student_id parameter for lecturers to view specific student submission
      */
-    public function show($assignmentId)
+    public function show($assignmentId, Request $request)
     {
         $assignment = Assignments::with(['course', 'lecturer'])
             ->findOrFail($assignmentId);
@@ -27,6 +31,7 @@ class SubmissionController extends Controller
 
         // Check permissions
         if ($user->role === 'student') {
+            // Verify student is enrolled in the course
             $courseLecturerIds = CourseStudent::where('student_id', $user->id)
                 ->pluck('course_lecturer_id');
             $courseIds = CourseLecturer::whereIn('id', $courseLecturerIds)
@@ -36,15 +41,23 @@ class SubmissionController extends Controller
                 abort(403, 'You are not enrolled in this course.');
             }
         } elseif ($user->role === 'lecturer') {
-            // Check if lecturer is the creator of this assignment
-            if ($assignment->lecturer_id !== $user->id) {
+            // Verify lecturer is assigned to this assignment's course
+            $isAssignedLecturer = CourseLecturer::where('course_id', $assignment->course_id)
+                ->where('lecturer_id', $user->id)
+                ->exists();
+            
+            if (!$isAssignedLecturer && $assignment->lecturer_id !== $user->id) {
                 abort(403, 'You are not authorized to view this assignment.');
             }
+        } else {
+            abort(403, 'Unauthorized access.');
         }
 
         // Get existing submission
-        // For students: get their own submission
-        // For lecturers: get the first submission (or we could add student_id parameter later)
+        // For students: get their own submission only
+        // For lecturers: require student_id parameter to view specific student's submission
+        // Comments are already private per-submission - students only see comments on their own submissions,
+        // lecturers only see comments on submissions they're grading
         if ($user->role === 'student') {
             $submission = Submissions::with(['submissionFiles', 'submissionComments' => function ($query) {
                 $query->orderBy('created_at', 'desc')->with('user');
@@ -53,13 +66,34 @@ class SubmissionController extends Controller
                 ->where('student_id', $user->id)
                 ->first();
         } else {
-            // For lecturers, get the first submission for this assignment
-            // In a full implementation, you might want to add a student_id parameter
+            // For lecturers, require student_id parameter
+            $studentId = $request->input('student_id');
+            
+            if (!$studentId) {
+                // If no student_id provided, redirect to grading page
+                return redirect()->route('lecturer.grading', [
+                    'courseId' => $assignment->course_id,
+                    'assignmentId' => $assignmentId
+                ])->with('info', 'Please select a student to view their submission.');
+            }
+
+            // Verify the student is enrolled in the course
+            $isEnrolled = CourseStudent::where('student_id', $studentId)
+                ->whereHas('courseLecturer', function($query) use ($assignment) {
+                    $query->where('course_id', $assignment->course_id);
+                })
+                ->exists();
+
+            if (!$isEnrolled) {
+                abort(403, 'This student is not enrolled in this course.');
+            }
+
             $submission = Submissions::with(['submissionFiles', 'submissionComments' => function ($query) {
                 $query->orderBy('created_at', 'desc')->with('user');
             }, 'student'])
                 ->where('assignment_id', $assignmentId)
-                ->first();
+                ->where('student_id', $studentId)
+                ->firstOrFail();
         }
 
         return view('student.assignment_submission', [
@@ -162,18 +196,34 @@ class SubmissionController extends Controller
 
     /**
      * Store a comment on a submission
+     * Access control:
+     * - Students: can only comment on their own submission
+     * - Lecturers: can only comment on submissions for assignments in courses they're assigned to
+     * - Requires student_id parameter for lecturers
      */
     public function storeComment(Request $request, $assignmentId)
     {
         $request->validate([
             'comment' => 'required|string|max:1000',
+            'student_id' => 'nullable|exists:users,id',
         ]);
 
         $assignment = Assignments::findOrFail($assignmentId);
         $user = Auth::user();
 
-        // Get submission
+        // Verify access to assignment
         if ($user->role === 'student') {
+            // Verify student is enrolled in the course
+            $courseLecturerIds = CourseStudent::where('student_id', $user->id)
+                ->pluck('course_lecturer_id');
+            $courseIds = CourseLecturer::whereIn('id', $courseLecturerIds)
+                ->pluck('course_id')
+                ->unique();
+            if (!$courseIds->contains($assignment->course_id)) {
+                abort(403, 'You are not enrolled in this course.');
+            }
+
+            // Get student's own submission
             $submission = Submissions::where('assignment_id', $assignmentId)
                 ->where('student_id', $user->id)
                 ->first();
@@ -181,15 +231,42 @@ class SubmissionController extends Controller
             if (!$submission) {
                 return back()->withErrors(['comment' => 'Please submit your assignment first before adding comments.']);
             }
-        } else {
-            // For lecturers, get the first submission for this assignment
-            // In a full implementation, you might want to add a student_id parameter
+        } elseif ($user->role === 'lecturer') {
+            // Verify lecturer is assigned to this assignment's course
+            $isAssignedLecturer = CourseLecturer::where('course_id', $assignment->course_id)
+                ->where('lecturer_id', $user->id)
+                ->exists();
+            
+            if (!$isAssignedLecturer && $assignment->lecturer_id !== $user->id) {
+                abort(403, 'You are not authorized to comment on this assignment.');
+            }
+
+            // For lecturers, require student_id parameter
+            $studentId = $request->input('student_id');
+            if (!$studentId) {
+                return back()->withErrors(['comment' => 'Student ID is required for lecturer comments.']);
+            }
+
+            // Verify the student is enrolled in the course
+            $isEnrolled = CourseStudent::where('student_id', $studentId)
+                ->whereHas('courseLecturer', function($query) use ($assignment) {
+                    $query->where('course_id', $assignment->course_id);
+                })
+                ->exists();
+
+            if (!$isEnrolled) {
+                abort(403, 'This student is not enrolled in this course.');
+            }
+
             $submission = Submissions::where('assignment_id', $assignmentId)
+                ->where('student_id', $studentId)
                 ->first();
 
             if (!$submission) {
-                return back()->withErrors(['comment' => 'No submission found to comment on.']);
+                return back()->withErrors(['comment' => 'No submission found for this student.']);
             }
+        } else {
+            abort(403, 'Unauthorized access.');
         }
 
         SubmissionComments::create([
@@ -198,12 +275,21 @@ class SubmissionController extends Controller
             'comment' => $request->comment,
         ]);
 
-        return redirect()->route('assignment.submission', $assignmentId)
+        // Redirect with student_id for lecturers
+        $redirectParams = ['assignmentId' => $assignmentId];
+        if ($user->role === 'lecturer' && $request->has('student_id')) {
+            $redirectParams['student_id'] = $request->input('student_id');
+        }
+
+        return redirect()->route('assignment.submission', $redirectParams)
             ->with('success', 'Comment added successfully!');
     }
 
     /**
      * Update submission grade and feedback
+     * Access control:
+     * - Only lecturers assigned to the course can grade
+     * - Verify submission belongs to the assignment and student is enrolled
      */
     public function updateGrade(Request $request, $assignmentId)
     {
@@ -221,14 +307,30 @@ class SubmissionController extends Controller
             abort(403, 'Only lecturers can grade submissions.');
         }
 
-        // Verify lecturer owns this assignment
-        if ($assignment->lecturer_id !== $user->id) {
+        // Verify lecturer is assigned to this assignment's course
+        $isAssignedLecturer = CourseLecturer::where('course_id', $assignment->course_id)
+            ->where('lecturer_id', $user->id)
+            ->exists();
+        
+        if (!$isAssignedLecturer && $assignment->lecturer_id !== $user->id) {
             abort(403, 'You are not authorized to grade this assignment.');
         }
 
+        // Get submission and verify it belongs to this assignment
         $submission = Submissions::where('id', $request->submission_id)
             ->where('assignment_id', $assignmentId)
             ->firstOrFail();
+
+        // Verify the student is enrolled in the course
+        $isEnrolled = CourseStudent::where('student_id', $submission->student_id)
+            ->whereHas('courseLecturer', function($query) use ($assignment) {
+                $query->where('course_id', $assignment->course_id);
+            })
+            ->exists();
+
+        if (!$isEnrolled) {
+            abort(403, 'This student is not enrolled in this course.');
+        }
 
         $submission->score = $request->score;
         $submission->grade = $this->calculateGrade($request->score);
@@ -237,7 +339,15 @@ class SubmissionController extends Controller
         $submission->marked_at = now();
         $submission->save();
 
-        return redirect()->route('assignment.submission', $assignmentId)
+        // Redirect with student_id for lecturers
+        $redirectParams = ['assignmentId' => $assignmentId];
+        if ($request->has('student_id')) {
+            $redirectParams['student_id'] = $request->input('student_id');
+        } else {
+            $redirectParams['student_id'] = $submission->student_id;
+        }
+
+        return redirect()->route('assignment.submission', $redirectParams)
             ->with('success', 'Grade and feedback updated successfully!');
     }
 
@@ -264,5 +374,113 @@ class SubmissionController extends Controller
         } else {
             return 'F';
         }
+    }
+
+    /**
+     * Download assignment attachment (protected route)
+     * Access control: Only enrolled students and assigned lecturers can download
+     */
+    public function downloadAssignmentAttachment($assignmentId)
+    {
+        $assignment = Assignments::findOrFail($assignmentId);
+        $user = Auth::user();
+
+        if (!$assignment->attachment) {
+            abort(404, 'Assignment attachment not found.');
+        }
+
+        // Check permissions
+        if ($user->role === 'student') {
+            // Verify student is enrolled in the course
+            $courseLecturerIds = CourseStudent::where('student_id', $user->id)
+                ->pluck('course_lecturer_id');
+            $courseIds = CourseLecturer::whereIn('id', $courseLecturerIds)
+                ->pluck('course_id')
+                ->unique();
+            if (!$courseIds->contains($assignment->course_id)) {
+                abort(403, 'You are not enrolled in this course.');
+            }
+        } elseif ($user->role === 'lecturer') {
+            // Verify lecturer is assigned to this assignment's course
+            $isAssignedLecturer = CourseLecturer::where('course_id', $assignment->course_id)
+                ->where('lecturer_id', $user->id)
+                ->exists();
+            
+            if (!$isAssignedLecturer && $assignment->lecturer_id !== $user->id) {
+                abort(403, 'You are not authorized to access this assignment.');
+            }
+        } else {
+            abort(403, 'Unauthorized access.');
+        }
+
+        $filePath = public_path($assignment->attachment);
+        if (!File::exists($filePath)) {
+            abort(404, 'File not found.');
+        }
+
+        return response()->download($filePath, basename($assignment->attachment));
+    }
+
+    /**
+     * Download submission file (protected route)
+     * Access control: 
+     * - Students can only download their own submission files
+     * - Lecturers can download files for students enrolled in their courses
+     */
+    public function downloadSubmissionFile($submissionId, $fileId)
+    {
+        $user = Auth::user();
+        
+        $submission = Submissions::with(['assignment', 'student'])->findOrFail($submissionId);
+        $file = SubmissionFile::where('id', $fileId)
+            ->where('submission_id', $submissionId)
+            ->firstOrFail();
+
+        // Check permissions
+        if ($user->role === 'student') {
+            // Students can only download their own files
+            if ($submission->student_id !== $user->id) {
+                abort(403, 'You can only download your own submission files.');
+            }
+
+            // Verify student is enrolled in the course
+            $courseLecturerIds = CourseStudent::where('student_id', $user->id)
+                ->pluck('course_lecturer_id');
+            $courseIds = CourseLecturer::whereIn('id', $courseLecturerIds)
+                ->pluck('course_id')
+                ->unique();
+            if (!$courseIds->contains($submission->assignment->course_id)) {
+                abort(403, 'You are not enrolled in this course.');
+            }
+        } elseif ($user->role === 'lecturer') {
+            // Verify lecturer is assigned to this assignment's course
+            $isAssignedLecturer = CourseLecturer::where('course_id', $submission->assignment->course_id)
+                ->where('lecturer_id', $user->id)
+                ->exists();
+            
+            if (!$isAssignedLecturer && $submission->assignment->lecturer_id !== $user->id) {
+                abort(403, 'You are not authorized to access this submission.');
+            }
+
+            // Verify the student is enrolled in the course
+            $isEnrolled = CourseStudent::where('student_id', $submission->student_id)
+                ->whereHas('courseLecturer', function($query) use ($submission) {
+                    $query->where('course_id', $submission->assignment->course_id);
+                })
+                ->exists();
+
+            if (!$isEnrolled) {
+                abort(403, 'This student is not enrolled in this course.');
+            }
+        } else {
+            abort(403, 'Unauthorized access.');
+        }
+
+        $filePath = public_path($file->file_path);
+        if (!File::exists($filePath)) {
+            abort(404, 'File not found.');
+        }
+
+        return response()->download($filePath, $file->original_filename);
     }
 }
