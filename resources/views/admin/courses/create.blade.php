@@ -4,8 +4,9 @@
 
 @push('styles')
 <style>
+    .content-wrapper { max-width: 800px; margin: 0 auto; }
     .header { background: var(--white); padding: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); margin-bottom: 20px; }
-    .form-container { background: var(--white); padding: 30px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); max-width: 600px; }
+    .form-container { background: var(--white); padding: 30px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
     .form-group { margin-bottom: 20px; }
     .form-label { display: block; margin-bottom: 8px; font-weight: 500; color: #222; }
     .form-control { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; font-family: var(--font); }
@@ -21,12 +22,13 @@
 @endpush
 
 @section('content')
-<div class="header">
-    <h1 style="font-size: 24px; color: #222; margin-bottom: 8px;">Create New Course</h1>
-    <p style="color: var(--muted); font-size: 14px;">Add a new course to the system. You can assign lecturers later.</p>
-</div>
+<div class="content-wrapper">
+    <div class="header">
+        <h1 style="font-size: 24px; color: #222; margin-bottom: 8px;">Create New Course</h1>
+        <p style="color: var(--muted); font-size: 14px;">Add a new course to the system. You can assign lecturers later.</p>
+    </div>
 
-<div class="form-container">
+    <div class="form-container">
     <form action="{{ route('admin.courses.store') }}" method="POST">
         @csrf
         
@@ -57,5 +59,6 @@
             <a href="{{ route('admin.courses.index') }}" class="btn btn-secondary">Cancel</a>
         </div>
     </form>
+    </div>
 </div>
 @endsection

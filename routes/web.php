@@ -4,6 +4,7 @@ use App\Http\Controllers\StudentDashboardController;
 use App\Http\Controllers\SubmissionController;
 use App\Http\Controllers\LecturerController;
 use App\Http\Controllers\AdminCourseController;
+use App\Http\Controllers\AdminDashboardController;
 use Illuminate\Support\Facades\Route;
 
 // Redirect root to login page
@@ -103,15 +104,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/download-template', [\App\Http\Controllers\AdminUserController::class, 'downloadTemplate'])
         ->name('admin.download_template');
     // Admin Dashboard
-    Route::get('/dashboard/admin', function () {
-        if (auth()->user()->role !== 'admin') {
-            abort(403, 'Unauthorized');
-        }
-        return response(view('admin.admin_dashboard'))
-            ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
-            ->header('Pragma', 'no-cache')
-            ->header('Expires', '0');
-    })->name('admin.dashboard');
+    Route::get('/dashboard/admin', [\App\Http\Controllers\AdminDashboardController::class, 'index'])
+        ->name('admin.dashboard');
 
     // Admin Course Management
     Route::prefix('admin/courses')->name('admin.courses.')->group(function () {

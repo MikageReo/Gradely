@@ -28,30 +28,29 @@ class AdminUserController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email:rfc,dns|max:255|unique:users,email',
-            'password' => 'required|string|min:8|confirmed',
             'role' => 'required|in:student,lecturer',
         ], [
             'name.required' => 'Please add the Full Name field.',
             'email.required' => 'Please add the Email field.',
             'email.email' => 'Please enter a valid email address (e.g. example@gmail.com).',
             'email.unique' => 'This email is already taken.',
-            'password.required' => 'Please add the Password field.',
-            'password.min' => 'Password must be at least 8 characters.',
-            'password.confirmed' => 'Password confirmation does not match.',
             'role.required' => 'Please select a Role.',
             'role.in' => 'Role must be either Student or Lecturer.',
         ]);
 
+        // Generate temporary password
+        $temporaryPassword = $this->generatePassword(12);
+
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
-            'password' => Hash::make($data['password']),
+            'password' => Hash::make($temporaryPassword),
             'role' => $data['role'],
         ]);
 
-        // Send welcome email
+        // Send welcome email with temporary password
         try {
-            Mail::to($user->email)->send(new UserRegisteredMail($user, $data['password']));
+            Mail::to($user->email)->send(new UserRegisteredMail($user, $temporaryPassword));
         } catch (\Exception $e) {
             // Log error but don't fail the registration
             Log::error('Failed to send registration email to ' . $user->email . ': ' . $e->getMessage());
@@ -66,13 +65,34 @@ class AdminUserController extends Controller
             abort(403, 'Unauthorized');
         }
         $request->validate([
-            'excel' => 'required|file|mimes:xlsx',
+            'excel' => 'required|file|mimes:csv,txt,xlsx',
         ]);
 
         $path = $request->file('excel')->getRealPath();
-        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
-        $sheet = $spreadsheet->getActiveSheet();
-        $rows = $sheet->toArray();
+        $extension = $request->file('excel')->getClientOriginalExtension();
+        
+        $rows = [];
+        
+        if (strtolower($extension) === 'csv') {
+            // Read CSV file
+            if (($handle = fopen($path, 'r')) !== false) {
+                // Check for BOM and skip it
+                $bom = fread($handle, 3);
+                if ($bom !== chr(0xEF).chr(0xBB).chr(0xBF)) {
+                    rewind($handle);
+                }
+                
+                while (($data = fgetcsv($handle)) !== false) {
+                    $rows[] = $data;
+                }
+                fclose($handle);
+            }
+        } else {
+            // Read Excel file using PhpSpreadsheet
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
+            $sheet = $spreadsheet->getActiveSheet();
+            $rows = $sheet->toArray();
+        }
 
         $header = array_map('strtolower', $rows[0]);
         $nameIdx = array_search('name', $header);
@@ -133,7 +153,7 @@ class AdminUserController extends Controller
                 $messages['error'] = ($messages['error'] ?? '') . ' Some users have invalid data. Please fix the Excel file.';
             }
         }
-        return redirect()->route('admin.register_users')->with($messages);
+        return back()->with($messages);
     }
 
     private function generatePassword($length = 10)
@@ -144,6 +164,41 @@ class AdminUserController extends Controller
             $password .= $chars[random_int(0, strlen($chars) - 1)];
         }
         return $password;
+    }
+
+    /**
+     * Download Excel template for bulk user registration
+     * Creates a CSV file that can be opened in Excel
+     */
+    public function downloadTemplate()
+    {
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Unauthorized');
+        }
+
+        $filename = 'user_registration_template.csv';
+        
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $callback = function() {
+            $file = fopen('php://output', 'w');
+            
+            // Add BOM for Excel UTF-8 compatibility
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+            
+            // Add header row
+            fputcsv($file, ['Name', 'Email', 'Role']);
+            
+            // Add sample data row
+            fputcsv($file, ['John Doe', 'john.doe@example.com', 'student']);
+            
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }
 

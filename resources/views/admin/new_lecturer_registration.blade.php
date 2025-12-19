@@ -3,10 +3,10 @@
 @section('title', 'Register Lecturer - GRADELY')
 
 @section('content')
-<div style="max-width: 800px;">
+<div style="max-width: 800px; margin: 0 auto;">
     <div style="background: var(--white); padding: 30px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); margin-bottom: 20px;">
         <h1 style="font-size: 24px; color: #222; margin-bottom: 8px;">Register New Lecturer</h1>
-        <p style="color: var(--muted); font-size: 14px; margin-bottom: 24px;">Add a new lecturer to the system</p>
+        <p style="color: var(--muted); font-size: 14px; margin-bottom: 24px;">Add a new lecturer to the system. A temporary password will be sent to their email.</p>
         
         <form method="POST" action="{{ route('admin.store_user') }}">
             @csrf
@@ -16,21 +16,11 @@
                 <input type="text" id="name" name="name" value="{{ old('name') }}" required 
                        style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
             </div>
-            <div style="margin-bottom: 20px;">
+            <div style="margin-bottom: 24px;">
                 <label for="email" style="display: block; margin-bottom: 6px; font-weight: 500; color: #222;">Email</label>
                 <input type="email" id="email" name="email" value="{{ old('email') }}" required 
                        style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
-            </div>
-            <div style="margin-bottom: 20px;">
-                <label for="password" style="display: block; margin-bottom: 6px; font-weight: 500; color: #222;">Password</label>
-                <input type="password" id="password" name="password" required 
-                       style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
-                <small style="color: var(--muted); margin-top: 4px; display: block;">Minimum 8 characters</small>
-            </div>
-            <div style="margin-bottom: 24px;">
-                <label for="password_confirmation" style="display: block; margin-bottom: 6px; font-weight: 500; color: #222;">Confirm Password</label>
-                <input type="password" id="password_confirmation" name="password_confirmation" required 
-                       style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                <small style="color: var(--muted); margin-top: 4px; display: block;">A temporary password will be sent to this email address</small>
             </div>
             
             <button type="submit" style="width: 100%; padding: 12px; background: var(--color-primary); color: var(--white); border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px;">
@@ -41,21 +31,22 @@
 
     <!-- Bulk Registration Section -->
     <div style="background: var(--white); padding: 30px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.06);">
-        <h2 style="font-size: 20px; color: #222; margin-bottom: 8px;">📥 Bulk Register Lecturers (Excel)</h2>
-        <p style="color: var(--muted); font-size: 14px; margin-bottom: 24px;">Upload an Excel file (.xlsx) to register multiple lecturers at once</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <div>
+                <h2 style="font-size: 20px; color: #222; margin-bottom: 4px;">📥 Bulk Register Lecturers (CSV)</h2>
+                <p style="color: var(--muted); font-size: 14px;">Upload a CSV file (.csv) to register multiple lecturers at once</p>
+            </div>
+            <a href="{{ route('admin.download_template') }}" style="padding: 10px 20px; background: var(--color-secondary); color: var(--white); border: none; border-radius: 6px; font-weight: 600; text-decoration: none; font-size: 14px; display: inline-block; transition: background 0.2s;">
+                📥 Download Template
+            </a>
+        </div>
         
         <form method="POST" action="{{ route('admin.bulk_register') }}" enctype="multipart/form-data">
             @csrf
             <div style="margin-bottom: 20px;">
-                <label for="excel" style="display: block; margin-bottom: 6px; font-weight: 500; color: #222;">Upload Excel File (.xlsx) *</label>
-                <input type="file" id="excel" name="excel" accept=".xlsx" required 
+                <label for="excel" style="display: block; margin-bottom: 6px; font-weight: 500; color: #222;">Upload CSV File (.csv) *</label>
+                <input type="file" id="excel" name="excel" accept=".csv" required 
                        style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
-                <small style="color: var(--muted); margin-top: 8px; display: block;">
-                    <strong>Excel Format:</strong> Must have columns: <code>Name</code>, <code>Email</code>, <code>Role</code> (student or lecturer)<br>
-                    First row should be headers. Example:<br>
-                    <code>Name | Email | Role</code><br>
-                    <code>Jane Doe | jane@email.com | lecturer</code>
-                </small>
             </div>
             <button type="submit" style="width: 100%; padding: 12px; background: var(--color-secondary); color: var(--white); border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px;">
                 Upload & Register Users

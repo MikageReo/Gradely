@@ -46,7 +46,43 @@
             margin-bottom: 32px;
             border-bottom: 2px solid rgba(255,255,255,0.3);
             padding-bottom: 12px;
+            letter-spacing: 0.08em;
             font-weight: 600;
+        }
+        .sidebar-profile {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            padding: 16px 14px;
+            text-align: center;
+            margin-bottom: 28px;
+        }
+        .sidebar-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.18);
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+        }
+        .sidebar-lecturer-name {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 2px;
+        }
+        .sidebar-lecturer-email {
+            font-size: 12px;
+            opacity: 0.9;
+            word-break: break-all;
+        }
+        .sidebar-nav-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            opacity: 0.7;
+            margin: 8px 0 8px;
         }
         .sidebar a {
             display: block;
@@ -154,14 +190,19 @@
             <h2>GRADELY</h2>
             
             <!-- Profile Card -->
-            <div style="background: rgba(255,255,255,0.1); border-radius: 8px; padding: 16px; margin-bottom: 20px; text-align: center;">
-                <div style="width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 8px; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
-                    👤
+            <div class="sidebar-profile">
+                <div class="sidebar-avatar">
+                    <span>👤</span>
                 </div>
-                <div style="font-size: 14px; font-weight: 500; margin-bottom: 4px;">{{ Auth::user()->name }}</div>
-                <div style="font-size: 12px; opacity: 0.8;">{{ Auth::user()->email }}</div>
+                <div class="sidebar-lecturer-name">
+                    {{ Auth::user()->name }}
+                </div>
+                <div class="sidebar-lecturer-email">
+                    {{ Auth::user()->email }}
+                </div>
             </div>
             
+            <div class="sidebar-nav-label">Navigation</div>
             <!-- Dashboard Link -->
             <a href="{{ route('lecturer.dashboard') }}" class="{{ request()->routeIs('lecturer.dashboard') ? 'active' : '' }}">🏠 Dashboard</a>
             

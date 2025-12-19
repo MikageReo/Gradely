@@ -20,7 +20,42 @@
         body { font-family: var(--font); background: var(--bg); }
         .container { display: flex; min-height: 100vh; }
         .sidebar { width: 250px; background: var(--color-primary); color: var(--white); padding: 24px 20px; box-shadow: 2px 0 6px rgba(0,0,0,0.1); position: fixed; height: 100vh; overflow-y: auto; }
-        .sidebar h2 { font-size: 18px; margin-bottom: 32px; border-bottom: 2px solid rgba(255,255,255,0.3); padding-bottom: 12px; font-weight: 600; }
+        .sidebar h2 { font-size: 18px; margin-bottom: 32px; border-bottom: 2px solid rgba(255,255,255,0.3); padding-bottom: 12px; letter-spacing: 0.08em; font-weight: 600; }
+        .sidebar-profile {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            padding: 16px 14px;
+            text-align: center;
+            margin-bottom: 28px;
+        }
+        .sidebar-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.18);
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+        }
+        .sidebar-admin-name {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 2px;
+        }
+        .sidebar-admin-email {
+            font-size: 12px;
+            opacity: 0.9;
+            word-break: break-all;
+        }
+        .sidebar-nav-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            opacity: 0.7;
+            margin: 8px 0 8px;
+        }
         .sidebar a { display: block; color: var(--white); text-decoration: none; padding: 12px 14px; margin: 0 0 12px 0; border-radius: 8px; transition: all 0.2s; font-size: 14px; }
         .sidebar a:hover { background: rgba(255,255,255,0.1); transform: translateX(2px); }
         .sidebar a.active { background: rgba(255,255,255,0.2); font-weight: 600; }
@@ -41,6 +76,21 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <h2>GRADELY</h2>
+            
+            <!-- Profile Card -->
+            <div class="sidebar-profile">
+                <div class="sidebar-avatar">
+                    <span>👤</span>
+                </div>
+                <div class="sidebar-admin-name">
+                    {{ Auth::user()->name }}
+                </div>
+                <div class="sidebar-admin-email">
+                    {{ Auth::user()->email }}
+                </div>
+            </div>
+            
+            <div class="sidebar-nav-label">Navigation</div>
             <a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">🏠 Dashboard</a>
             <a href="{{ route('admin.new_student_registration') }}" class="{{ request()->routeIs('admin.new_student_registration') ? 'active' : '' }}">👤 Register Student</a>
             <a href="{{ route('admin.new_lecturer_registration') }}" class="{{ request()->routeIs('admin.new_lecturer_registration') ? 'active' : '' }}">👨‍🏫 Register Lecturer</a>

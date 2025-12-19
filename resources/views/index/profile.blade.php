@@ -13,6 +13,11 @@
             --white: #fff;
             --font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
             font-family: var(--font);
             background: var(--bg);
@@ -25,6 +30,7 @@
         /* Sidebar */
         .sidebar {
             width: 250px;
+            flex: 0 0 250px;
             background: var(--color-primary);
             color: var(--white);
             padding: 20px;
@@ -39,6 +45,7 @@
             margin-bottom: 32px;
             border-bottom: 2px solid rgba(255,255,255,0.3);
             padding-bottom: 12px;
+            letter-spacing: 0.08em;
             font-weight: 600;
         }
         .sidebar-profile {
