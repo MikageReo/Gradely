@@ -191,7 +191,8 @@ class SubmissionController extends Controller
         }
 
         return redirect()->route('assignment.submission', $assignmentId)
-            ->with('success', 'Assignment submitted successfully!');
+            ->with('success', 'Your assignment files were uploaded and submitted to your lecturer.')
+            ->with('success_type', 'submission');
     }
 
     /**
@@ -275,13 +276,7 @@ class SubmissionController extends Controller
             'comment' => $request->comment,
         ]);
 
-        // Redirect with student_id for lecturers
-        $redirectParams = ['assignmentId' => $assignmentId];
-        if ($user->role === 'lecturer' && $request->has('student_id')) {
-            $redirectParams['student_id'] = $request->input('student_id');
-        }
-
-        return redirect()->route('assignment.submission', $redirectParams)
+        return redirect()->route('assignment.submission', $assignmentId)
             ->with('success', 'Comment added successfully!');
     }
 
@@ -339,15 +334,7 @@ class SubmissionController extends Controller
         $submission->marked_at = now();
         $submission->save();
 
-        // Redirect with student_id for lecturers
-        $redirectParams = ['assignmentId' => $assignmentId];
-        if ($request->has('student_id')) {
-            $redirectParams['student_id'] = $request->input('student_id');
-        } else {
-            $redirectParams['student_id'] = $submission->student_id;
-        }
-
-        return redirect()->route('assignment.submission', $redirectParams)
+        return redirect()->route('assignment.submission', $assignmentId)
             ->with('success', 'Grade and feedback updated successfully!');
     }
 

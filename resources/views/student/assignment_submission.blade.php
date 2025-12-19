@@ -267,6 +267,11 @@
             font-weight: 600;
             color: #222;
         }
+        .comments-subtitle {
+            font-size: 13px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
         .comment-list {
             margin-bottom: 20px;
         }
@@ -280,6 +285,15 @@
             font-weight: 600;
             color: var(--color-primary);
             margin-bottom: 4px;
+        }
+        .comment-role-badge {
+            display: inline-block;
+            margin-left: 6px;
+            padding: 2px 6px;
+            border-radius: 999px;
+            font-size: 11px;
+            background: #e3f2fd;
+            color: #1565c0;
         }
         .comment-text {
             color: #333;
@@ -586,11 +600,11 @@
 
         <!-- Main Content -->
         <main class="main-content">
-            @if (session('success'))
-                <div class="success-alert" id="successAlert">
-                    {{ session('success') }}
-                </div>
-            @endif
+        @if (session('success'))
+            <div class="success-alert" id="successAlert">
+                {{ session('success') }}
+            </div>
+        @endif
 
             <div class="page-header">
                 <div>
@@ -604,7 +618,7 @@
                 </div>
             </div>
 
-            <div class="assignment-card">
+        <div class="assignment-card">
             <div class="assignment-header">
                 <div class="assignment-icon">📝</div>
                 <h1 class="assignment-title">Assignment: {{ $assignment->title }}</h1>
@@ -807,7 +821,16 @@
                     <svg class="comments-icon" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"/>
                     </svg>
-                    <h2 class="comments-title">Comments</h2>
+                    <div>
+                        <h2 class="comments-title">Questions & Feedback</h2>
+                        <div class="comments-subtitle">
+                            @if(Auth::user()->role === 'student')
+                                Ask your lecturer questions or share notes about this assignment. Only you and your lecturer can see this conversation.
+                            @else
+                                Answer the student's questions and guide them on this assignment. Only you and this student can see this conversation.
+                            @endif
+                        </div>
+                    </div>
                     @if($submission && $submission->submissionComments->count() >= 2)
                         <button class="history-btn" onclick="openHistoryModal()">History</button>
                     @endif
@@ -821,8 +844,11 @@
                         @foreach($latestComments as $comment)
                             <div class="comment-item">
                                 <div class="comment-author">
-                                    {{ $comment->user->role === 'lecturer' ? 'Lecturer' : 'You' }}:
+                                    {{ $comment->user->role === 'lecturer' ? 'Lecturer' : (Auth::id() === $comment->user->id ? 'You' : 'Student') }}:
                                     {{ $comment->user->name }}
+                                    <span class="comment-role-badge">
+                                        {{ ucfirst($comment->user->role) }}
+                                    </span>
                                 </div>
                                 <div class="comment-text">{{ $comment->comment }}</div>
                                 <div class="comment-time">{{ $comment->created_at->format('M d, Y g:ia') }}</div>
@@ -830,7 +856,14 @@
                         @endforeach
                     @else
                         <div class="comment-item">
-                            <div class="comment-text" style="color: var(--muted);">No comments yet. Start the conversation!</div>
+                            <div class="comment-text" style="color: var(--muted);">
+                                No comments yet.
+                                @if(Auth::user()->role === 'student')
+                                    Use the box below to ask your first question about this assignment.
+                                @else
+                                    Once the student comments here, you can reply to support them.
+                                @endif
+                            </div>
                         </div>
                     @endif
                 </div>
@@ -838,6 +871,13 @@
                 @if($submission || Auth::user()->role === 'student')
                     <form action="{{ route('assignment.submission.comment', $assignment->id) }}" method="POST" class="comment-form">
                         @csrf
+                        <input
+                            type="text"
+                            name="comment"
+                            class="comment-input"
+                            placeholder="{{ Auth::user()->role === 'lecturer' ? 'Reply to the student with guidance or clarification...' : 'Ask a question or add a comment for your lecturer about this assignment...' }}"
+                            required
+                        >
                         @if(Auth::user()->role === 'lecturer' && $submission)
                             <input type="hidden" name="student_id" value="{{ $submission->student_id }}">
                         @endif
@@ -888,6 +928,13 @@
                 @if($submission || Auth::user()->role === 'student')
                     <form action="{{ route('assignment.submission.comment', $assignment->id) }}" method="POST" class="comment-form">
                         @csrf
+                        <input
+                            type="text"
+                            name="comment"
+                            class="comment-input"
+                            placeholder="{{ Auth::user()->role === 'lecturer' ? 'Reply to the student with guidance or clarification...' : 'Ask a question or add a comment for your lecturer about this assignment...' }}"
+                            required
+                        >
                         @if(Auth::user()->role === 'lecturer' && $submission)
                             <input type="hidden" name="student_id" value="{{ $submission->student_id }}">
                         @endif
