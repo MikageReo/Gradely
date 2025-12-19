@@ -371,7 +371,7 @@
             </div>
             <!-- Dashboard Link -->
             <a href="{{ route('student.dashboard') }}" class="{{ request()->routeIs('student.dashboard') ? 'active' : '' }}">🏠 Dashboard</a>
-            
+
             <!-- My Courses Dropdown -->
             <div class="dropdown">
                 <div class="dropdown-toggle {{ request()->routeIs('student.course.show') ? 'active' : '' }}" onclick="toggleDropdown(this)">
@@ -386,7 +386,7 @@
                     @endphp
                     @if($studentCourses->count() > 0)
                         @foreach($studentCourses as $course)
-                            <a href="{{ route('student.course.show', $course->id) }}" 
+                            <a href="{{ route('student.course.show', $course->id) }}"
                                class="{{ request()->routeIs('student.course.show') && request()->route('courseId') == $course->id ? 'active' : '' }}">
                                 {{ $course->course_code }} - {{ $course->course_name }}
                             </a>
@@ -398,7 +398,7 @@
                     @endif
                 </div>
             </div>
-            
+
             <a href="{{ route('profile.view') }}" class="{{ request()->routeIs('profile.view') ? 'active' : '' }}">👤 Profile</a>
             <a href="{{ url('/logout') }}" class="logout">🚪 Logout</a>
         </aside>
@@ -570,20 +570,6 @@
                     </div>
                 @endif
             </div>
-
-            <div class="cards" style="margin-top: 20px;">
-                <div class="card" id="grades">
-                    <h3>📊 Grades</h3>
-                    <p>Track your academic performance. View your grades for all assessments, assignments, and exams.</p>
-                </div>
-                @if($courses->count() > 0 && ($overallAvgScore ?? null) === null)
-                <div class="card" id="progress">
-                    <h3>📈 Progress</h3>
-                    <p>Monitor your overall academic progress and see personalized recommendations for improvement.</p>
-                    <p style="margin-top: 10px; font-size: 13px; color: var(--muted);">Start submitting assignments to see your performance metrics!</p>
-                </div>
-                @endif
-            </div>
         </main>
     </div>
 
@@ -591,7 +577,7 @@
         function toggleDropdown(element) {
             const dropdown = element.nextElementSibling;
             const isActive = dropdown.classList.contains('active');
-            
+
             // Close all dropdowns
             document.querySelectorAll('.dropdown-menu').forEach(menu => {
                 menu.classList.remove('active');
@@ -599,7 +585,7 @@
             document.querySelectorAll('.dropdown-toggle').forEach(toggle => {
                 toggle.classList.remove('active');
             });
-            
+
             // Toggle current dropdown
             if (!isActive) {
                 dropdown.classList.add('active');
@@ -611,7 +597,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             const dropdown = document.getElementById('coursesDropdown');
             const toggle = dropdown ? dropdown.previousElementSibling : null;
-            
+
             @if(request()->routeIs('student.course.show'))
                 // Open dropdown and highlight active course when viewing a course
                 if (dropdown && toggle) {

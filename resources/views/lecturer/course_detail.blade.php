@@ -195,37 +195,69 @@
         .btn-secondary:hover {
             background: #616161;
         }
-        /* Table */
-        .assignments-table {
-            width: 100%;
-            border-collapse: collapse;
+        /* Assignments Grid */
+        .assignments-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 20px;
         }
-        .assignments-table th,
-        .assignments-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #f0f0f0;
+        .assignment-card {
+            background: var(--white);
+            border: 2px solid #f0f0f0;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
-        .assignments-table th {
-            font-weight: 600;
-            color: var(--muted);
-            font-size: 13px;
-            text-transform: uppercase;
+        .assignment-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--color-secondary);
+            transition: width 0.3s ease;
         }
-        .assignments-table td {
-            color: #222;
-            font-size: 14px;
+        .assignment-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            border-color: var(--color-secondary);
+        }
+        .assignment-card:hover::before {
+            width: 6px;
+        }
+        .assignment-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+            gap: 12px;
         }
         .assignment-title {
-            font-weight: 500;
-            color: var(--color-primary);
+            font-weight: 600;
+            color: #222;
+            font-size: 16px;
+            line-height: 1.4;
+            margin: 0;
+            flex: 1;
+        }
+        .assignment-badges {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: flex-end;
         }
         .badge {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
             padding: 4px 10px;
             border-radius: 12px;
-            font-size: 12px;
-            font-weight: 500;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
         }
         .badge-success {
             background: #e8f5e9;
@@ -247,9 +279,99 @@
             background: #f5f5f5;
             color: #616161;
         }
-        .action-buttons {
+        .assignment-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--muted);
+        }
+        .meta-item-icon {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+        }
+        .meta-item-value {
+            color: #222;
+            font-weight: 500;
+        }
+        .submissions-info {
+            background: linear-gradient(135deg, #E0F2F1 0%, #B2DFDB 100%);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        .submissions-label {
+            font-size: 12px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .submissions-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--color-secondary);
+        }
+        .submissions-text {
+            font-size: 13px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+        .assignment-actions {
             display: flex;
             gap: 8px;
+            flex-wrap: wrap;
+        }
+        .btn-action {
+            flex: 1;
+            min-width: 100px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            border: none;
+        }
+        .btn-grade {
+            background: var(--color-secondary);
+            color: var(--white);
+        }
+        .btn-grade:hover {
+            background: #00695C;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 137, 123, 0.3);
+        }
+        .btn-edit {
+            background: var(--color-primary);
+            color: var(--white);
+        }
+        .btn-edit:hover {
+            background: #1565C0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+        }
+        .btn-delete {
+            background: #E53935;
+            color: var(--white);
+        }
+        .btn-delete:hover {
+            background: #C62828;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(229, 57, 53, 0.3);
         }
         /* Modal */
         .modal {
@@ -432,15 +554,23 @@
             font-weight: 600;
         }
         @media (max-width: 768px) {
-            .assignments-table {
-                font-size: 12px;
+            .assignments-grid {
+                grid-template-columns: 1fr;
             }
-            .assignments-table th,
-            .assignments-table td {
-                padding: 8px;
-            }
-            .action-buttons {
+            .assignment-card-header {
                 flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+            .assignment-badges {
+                flex-direction: row;
+                align-items: flex-start;
+            }
+            .assignment-actions {
+                flex-direction: column;
+            }
+            .btn-action {
+                width: 100%;
             }
             .simple-pagination {
                 gap: 12px;
@@ -505,13 +635,13 @@
                     <h2 class="section-title">Assignments</h2>
                     <a class="btn-primary" href="{{ route('lecturer.assignment.create', $course->id) }}">+ Create Assignment</a>
                 </div>
-                
+
                 <!-- Search and Filter Form (Functional Appropriateness) -->
                 <form method="GET" action="{{ route('lecturer.course.show', $course->id) }}" style="margin-bottom: 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
                     <div style="flex: 1; min-width: 200px;">
                         <label for="search" style="display: block; margin-bottom: 6px; font-size: 13px; color: var(--muted);">Search</label>
-                        <input type="text" id="search" name="search" value="{{ request('search') }}" 
-                               placeholder="Search by title..." 
+                        <input type="text" id="search" name="search" value="{{ request('search') }}"
+                               placeholder="Search by title..."
                                class="form-control" style="width: 100%;">
                     </div>
                     <div style="min-width: 150px;">
@@ -539,70 +669,92 @@
                         </div>
                     @endif
                 </form>
-                
+
                 @if($assignments->count() > 0)
-                    <div style="overflow-x: auto;">
-                        <table class="assignments-table">
-                            <thead>
-                                <tr>
-                                    <th>Title</th>
-                                    <th>Due Date</th>
-                                    <th>Submissions</th>
-                                    <th>Status</th>
-                                    <th>Visibility</th>
-                                    <th>Grading</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($assignments as $assignment)
-                                    <tr>
-                                        <td>
-                                            <div class="assignment-title">{{ $assignment->title }}</div>
-                                        </td>
-                                        <td>
-                                            {{ $assignment->due_date ? $assignment->due_date->format('M d, Y g:ia') : 'No due date' }}
-                                        </td>
-                                        <td>{{ $assignment->submissions_count ?? 0 }}</td>
-                                        <td>
-                                            @if($assignment->status === 'open')
-                                                <span class="badge badge-success">Open</span>
-                                            @else
-                                                <span class="badge badge-danger">Close</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            @if($assignment->visibility === 'published')
-                                                <span class="badge badge-info">Published</span>
-                                            @else
-                                                <span class="badge badge-secondary">Hidden</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            <a href="{{ route('lecturer.grading', [$course->id, $assignment->id]) }}" class="btn-secondary">
-                                                View ({{ $assignment->submissions_count ?? 0 }})
-                                            </a>
-                                        </td>
-                                        <td>
-                                            <div class="action-buttons">
-                                                <a class="btn-secondary" href="{{ route('lecturer.assignment.edit', [$course->id, $assignment->id]) }}">Edit</a>
-                                                <form action="{{ route('lecturer.assignment.delete', [$course->id, $assignment->id]) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this assignment?');">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn-danger">Delete</button>
-                                                </form>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                    <div class="assignments-grid">
+                        @foreach($assignments as $assignment)
+                            <div class="assignment-card">
+                                <div class="assignment-card-header">
+                                    <h3 class="assignment-title">{{ $assignment->title }}</h3>
+                                    <div class="assignment-badges">
+                                        @if($assignment->status === 'open')
+                                            <span class="badge badge-success">✓ Open</span>
+                                        @else
+                                            <span class="badge badge-danger">✗ Closed</span>
+                                        @endif
+                                        @if($assignment->visibility === 'published')
+                                            <span class="badge badge-info">📢 Published</span>
+                                        @else
+                                            <span class="badge badge-secondary">🔒 Hidden</span>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                <div class="assignment-meta">
+                                    <div class="meta-item">
+                                        <span class="meta-item-icon">📅</span>
+                                        <span>
+                                            <strong>Due:</strong>
+                                            <span class="meta-item-value">
+                                                {{ $assignment->due_date ? $assignment->due_date->format('M d, Y g:ia') : 'No due date' }}
+                                            </span>
+                                        </span>
+                                    </div>
+                                    @if($assignment->due_date)
+                                        <div class="meta-item">
+                                            <span class="meta-item-icon">
+                                                @if($assignment->due_date->isPast())
+                                                    ⏰
+                                                @else
+                                                    ⏱️
+                                                @endif
+                                            </span>
+                                            <span>
+                                                @if($assignment->due_date->isPast())
+                                                    <span style="color: #c62828;">Overdue {{ $assignment->due_date->diffForHumans() }}</span>
+                                                @else
+                                                    <span style="color: #2e7d32;">Due in {{ $assignment->due_date->diffForHumans() }}</span>
+                                                @endif
+                                            </span>
+                                        </div>
+                                    @endif
+                                </div>
+
+                                <div class="submissions-info">
+                                    <div class="submissions-label">Submissions</div>
+                                    <div class="submissions-value">{{ $assignment->submissions_count ?? 0 }}</div>
+                                    <div class="submissions-text">
+                                        @if(($assignment->submissions_count ?? 0) > 0)
+                                            {{ $assignment->submissions_count }} student{{ $assignment->submissions_count > 1 ? 's' : '' }} submitted
+                                        @else
+                                            No submissions yet
+                                        @endif
+                                    </div>
+                                </div>
+
+                                <div class="assignment-actions">
+                                    <a href="{{ route('lecturer.grading', [$course->id, $assignment->id]) }}" class="btn-action btn-grade">
+                                        📊 Grade ({{ $assignment->submissions_count ?? 0 }})
+                                    </a>
+                                    <a href="{{ route('lecturer.assignment.edit', [$course->id, $assignment->id]) }}" class="btn-action btn-edit">
+                                        ✏️ Edit
+                                    </a>
+                                    <form action="{{ route('lecturer.assignment.delete', [$course->id, $assignment->id]) }}" method="POST" style="flex: 1; min-width: 100px;" onsubmit="return confirm('Are you sure you want to delete this assignment? This action cannot be undone.');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn-action btn-delete" style="width: 100%;">
+                                            🗑️ Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        @endforeach
                     </div>
-                    
+
                     <!-- Pagination (Capacity improvement) -->
                     <div class="pagination-wrapper">
                         <div class="simple-pagination">
-                            <a href="{{ $assignments->previousPageUrl() }}" 
+                            <a href="{{ $assignments->previousPageUrl() }}"
                                class="pagination-btn {{ $assignments->onFirstPage() ? 'disabled' : '' }}"
                                {{ $assignments->onFirstPage() ? 'onclick="return false;"' : '' }}>
                                 &lt;
@@ -610,7 +762,7 @@
                             <span class="pagination-info">
                                 Showing <strong>{{ $assignments->firstItem() ?? 0 }}</strong> to <strong>{{ $assignments->lastItem() ?? 0 }}</strong> of <strong>{{ $assignments->total() }}</strong> assignments
                             </span>
-                            <a href="{{ $assignments->nextPageUrl() }}" 
+                            <a href="{{ $assignments->nextPageUrl() }}"
                                class="pagination-btn {{ !$assignments->hasMorePages() ? 'disabled' : '' }}"
                                {{ !$assignments->hasMorePages() ? 'onclick="return false;"' : '' }}>
                                 &gt;

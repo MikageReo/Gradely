@@ -45,7 +45,7 @@ class SubmissionController extends Controller
             $isAssignedLecturer = CourseLecturer::where('course_id', $assignment->course_id)
                 ->where('lecturer_id', $user->id)
                 ->exists();
-            
+
             if (!$isAssignedLecturer && $assignment->lecturer_id !== $user->id) {
                 abort(403, 'You are not authorized to view this assignment.');
             }
@@ -53,11 +53,6 @@ class SubmissionController extends Controller
             abort(403, 'Unauthorized access.');
         }
 
-        // Get existing submission
-        // For students: get their own submission only
-        // For lecturers: require student_id parameter to view specific student's submission
-        // Comments are already private per-submission - students only see comments on their own submissions,
-        // lecturers only see comments on submissions they're grading
         if ($user->role === 'student') {
             $submission = Submissions::with(['submissionFiles', 'submissionComments' => function ($query) {
                 $query->orderBy('created_at', 'desc')->with('user');
@@ -68,7 +63,7 @@ class SubmissionController extends Controller
         } else {
             // For lecturers, require student_id parameter
             $studentId = $request->input('student_id');
-            
+
             if (!$studentId) {
                 // If no student_id provided, redirect to grading page
                 return redirect()->route('lecturer.grading', [
@@ -96,9 +91,25 @@ class SubmissionController extends Controller
                 ->firstOrFail();
         }
 
+        $unreadCount = 0;
+        if ($submission) {
+            // Count unread comments from other users
+            $unreadCount = SubmissionComments::where('submission_id', $submission->id)
+                ->where('user_id', '!=', $user->id)
+                ->whereNull('read_at')
+                ->count();
+            
+            // Mark all comments from other users as read when viewing the submission
+            SubmissionComments::where('submission_id', $submission->id)
+                ->where('user_id', '!=', $user->id)
+                ->whereNull('read_at')
+                ->update(['read_at' => now()]);
+        }
+
         return view('student.assignment_submission', [
             'assignment' => $assignment,
             'submission' => $submission,
+            'unreadCount' => $unreadCount,
         ]);
     }
 
@@ -195,13 +206,6 @@ class SubmissionController extends Controller
             ->with('success_type', 'submission');
     }
 
-    /**
-     * Store a comment on a submission
-     * Access control:
-     * - Students: can only comment on their own submission
-     * - Lecturers: can only comment on submissions for assignments in courses they're assigned to
-     * - Requires student_id parameter for lecturers
-     */
     public function storeComment(Request $request, $assignmentId)
     {
         $request->validate([
@@ -237,7 +241,7 @@ class SubmissionController extends Controller
             $isAssignedLecturer = CourseLecturer::where('course_id', $assignment->course_id)
                 ->where('lecturer_id', $user->id)
                 ->exists();
-            
+
             if (!$isAssignedLecturer && $assignment->lecturer_id !== $user->id) {
                 abort(403, 'You are not authorized to comment on this assignment.');
             }
@@ -270,14 +274,44 @@ class SubmissionController extends Controller
             abort(403, 'Unauthorized access.');
         }
 
-        SubmissionComments::create([
+        $comment = SubmissionComments::create([
             'submission_id' => $submission->id,
             'user_id' => $user->id,
             'comment' => $request->comment,
         ]);
 
-        return redirect()->route('assignment.submission', $assignmentId)
-            ->with('success', 'Comment added successfully!');
+        // Load the user relationship for the response
+        $comment->load('user');
+
+        // If AJAX request, return JSON response
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $user->role === 'lecturer'
+                    ? 'Your reply was sent to the student.'
+                    : 'Your question was sent to the lecturer.',
+                'comment' => [
+                    'id' => $comment->id,
+                    'comment' => $comment->comment,
+                    'user_id' => $comment->user_id,
+                    'user_name' => $comment->user->name,
+                    'user_role' => $comment->user->role,
+                    'created_at' => $comment->created_at->toISOString(),
+                ]
+            ]);
+        }
+
+        // Redirect with student_id for lecturers (as query parameter)
+        $redirectUrl = route('assignment.submission', ['assignmentId' => $assignmentId]);
+        if ($user->role === 'lecturer' && $request->has('student_id')) {
+            $redirectUrl .= '?student_id=' . $request->input('student_id');
+        }
+
+        return redirect($redirectUrl)
+            ->with('success', $user->role === 'lecturer'
+                ? 'Your reply was sent to the student.'
+                : 'Your question was sent to the lecturer.')
+            ->with('success_type', 'comment');
     }
 
     /**
@@ -306,7 +340,7 @@ class SubmissionController extends Controller
         $isAssignedLecturer = CourseLecturer::where('course_id', $assignment->course_id)
             ->where('lecturer_id', $user->id)
             ->exists();
-        
+
         if (!$isAssignedLecturer && $assignment->lecturer_id !== $user->id) {
             abort(403, 'You are not authorized to grade this assignment.');
         }
@@ -334,8 +368,28 @@ class SubmissionController extends Controller
         $submission->marked_at = now();
         $submission->save();
 
-        return redirect()->route('assignment.submission', $assignmentId)
-            ->with('success', 'Grade and feedback updated successfully!');
+        // If AJAX request, return JSON response
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'The grade and feedback have been saved for this submission.',
+                'submission' => [
+                    'score' => $submission->score,
+                    'grade' => $submission->grade,
+                    'lecturer_feedback' => $submission->lecturer_feedback,
+                    'status' => $submission->status,
+                    'marked_at' => $submission->marked_at ? $submission->marked_at->toISOString() : null,
+                ]
+            ]);
+        }
+
+        // Redirect with student_id for lecturers (as query parameter)
+        $studentId = $request->has('student_id') ? $request->input('student_id') : $submission->student_id;
+        $redirectUrl = route('assignment.submission', ['assignmentId' => $assignmentId]) . '?student_id=' . $studentId;
+
+        return redirect($redirectUrl)
+            ->with('success', 'The grade and feedback have been saved for this submission.')
+            ->with('success_type', 'grade');
     }
 
     /**
@@ -392,7 +446,7 @@ class SubmissionController extends Controller
             $isAssignedLecturer = CourseLecturer::where('course_id', $assignment->course_id)
                 ->where('lecturer_id', $user->id)
                 ->exists();
-            
+
             if (!$isAssignedLecturer && $assignment->lecturer_id !== $user->id) {
                 abort(403, 'You are not authorized to access this assignment.');
             }
@@ -410,14 +464,14 @@ class SubmissionController extends Controller
 
     /**
      * Download submission file (protected route)
-     * Access control: 
+     * Access control:
      * - Students can only download their own submission files
      * - Lecturers can download files for students enrolled in their courses
      */
     public function downloadSubmissionFile($submissionId, $fileId)
     {
         $user = Auth::user();
-        
+
         $submission = Submissions::with(['assignment', 'student'])->findOrFail($submissionId);
         $file = SubmissionFile::where('id', $fileId)
             ->where('submission_id', $submissionId)
@@ -444,7 +498,7 @@ class SubmissionController extends Controller
             $isAssignedLecturer = CourseLecturer::where('course_id', $submission->assignment->course_id)
                 ->where('lecturer_id', $user->id)
                 ->exists();
-            
+
             if (!$isAssignedLecturer && $submission->assignment->lecturer_id !== $user->id) {
                 abort(403, 'You are not authorized to access this submission.');
             }

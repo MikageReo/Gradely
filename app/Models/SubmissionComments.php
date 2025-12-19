@@ -12,6 +12,11 @@ class SubmissionComments extends Model
         'submission_id',
         'user_id',
         'comment',
+        'read_at',
+    ];
+
+    protected $casts = [
+        'read_at' => 'datetime',
     ];
 
     /**

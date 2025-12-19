@@ -217,42 +217,70 @@
             padding-bottom: 12px;
             border-bottom: 2px solid #f0f0f0;
         }
-        .assignments-table {
-            width: 100%;
-            border-collapse: collapse;
+        .assignments-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
         }
-        .assignments-table th,
-        .assignments-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #f0f0f0;
+        .assignment-card {
+            background: var(--white);
+            border: 2px solid #f0f0f0;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
-        .assignments-table th {
-            font-weight: 600;
-            color: var(--muted);
-            font-size: 13px;
-            text-transform: uppercase;
+        .assignment-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--color-primary);
+            transition: width 0.3s ease;
         }
-        .assignments-table td {
-            color: #222;
+        .assignment-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            border-color: var(--color-primary);
+        }
+        .assignment-card:hover::before {
+            width: 6px;
+        }
+        .assignment-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
         }
         .assignment-title {
-            font-weight: 500;
-            color: var(--color-primary);
+            font-weight: 600;
+            color: #222;
+            font-size: 16px;
+            line-height: 1.4;
+            margin: 0;
+            flex: 1;
         }
         .assignment-title a {
             color: inherit;
             text-decoration: none;
+            transition: color 0.2s;
         }
         .assignment-title a:hover {
-            text-decoration: underline;
+            color: var(--color-primary);
         }
-        .badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 12px;
+        .assignment-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
             font-size: 12px;
-            font-weight: 500;
+            font-weight: 600;
+            white-space: nowrap;
+            margin-left: 12px;
         }
         .badge-success {
             background: #e8f5e9;
@@ -270,6 +298,96 @@
             background: #ffebee;
             color: #c62828;
         }
+        .badge-secondary {
+            background: #f5f5f5;
+            color: #757575;
+        }
+        .assignment-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--muted);
+        }
+        .meta-item-icon {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+        }
+        .meta-item-value {
+            color: #222;
+            font-weight: 500;
+        }
+        .assignment-score {
+            background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        .score-label {
+            font-size: 12px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .score-value {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 8px;
+        }
+        .score-number {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+        .score-max {
+            font-size: 18px;
+            color: var(--muted);
+        }
+        .score-grade {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-left: 8px;
+        }
+        .assignment-action {
+            width: 100%;
+            padding: 12px;
+            background: var(--color-primary);
+            color: var(--white);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: block;
+            text-align: center;
+        }
+        .assignment-action:hover {
+            background: #1565C0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+        }
+        .assignment-action:active {
+            transform: translateY(0);
+        }
+        .no-score {
+            text-align: center;
+            padding: 16px;
+            color: var(--muted);
+            font-size: 14px;
+        }
         .empty-state {
             text-align: center;
             padding: 40px 20px;
@@ -284,6 +402,17 @@
             }
             .main-content {
                 padding: 20px;
+            }
+            .assignments-grid {
+                grid-template-columns: 1fr;
+            }
+            .assignment-card-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+            .assignment-status-badge {
+                margin-left: 0;
             }
         }
     </style>
@@ -305,7 +434,7 @@
             </div>
             <!-- Dashboard Link -->
             <a href="{{ route('student.dashboard') }}" class="{{ request()->routeIs('student.dashboard') ? 'active' : '' }}">🏠 Dashboard</a>
-            
+
             <!-- My Courses Dropdown -->
             <div class="dropdown">
                 <div class="dropdown-toggle {{ request()->routeIs('student.course.show') ? 'active' : '' }}" onclick="toggleDropdown(this)">
@@ -320,7 +449,7 @@
                     @endphp
                     @if($studentCourses->count() > 0)
                         @foreach($studentCourses as $course)
-                            <a href="{{ route('student.course.show', $course->id) }}" 
+                            <a href="{{ route('student.course.show', $course->id) }}"
                                class="{{ request()->routeIs('student.course.show') && request()->route('courseId') == $course->id ? 'active' : '' }}">
                                 {{ $course->course_code }} - {{ $course->course_name }}
                             </a>
@@ -332,7 +461,7 @@
                     @endif
                 </div>
             </div>
-            
+
             <a href="{{ route('profile.view') }}" class="{{ request()->routeIs('profile.view') ? 'active' : '' }}">👤 Profile</a>
             <a href="{{ url('/logout') }}" class="logout">🚪 Logout</a>
         </aside>
@@ -348,7 +477,7 @@
                 <div class="course-info">
                     <div class="info-item">
                         <span>👨‍🏫</span>
-                        <span>Lecturer(s): 
+                        <span>Lecturer(s):
                             @foreach($course->courseLecturers as $cl)
                                 {{ $cl->lecturer->name }}{{ !$loop->last ? ', ' : '' }}
                             @endforeach
@@ -357,14 +486,6 @@
                     <div class="info-item">
                         <span>📝</span>
                         <span>{{ $assignments->count() }} Assignments</span>
-                    </div>
-                    <div class="info-item">
-                        <span>👥</span>
-                        <span>{{ $course->students_count ?? 0 }} Students</span>
-                    </div>
-                    <div class="info-item">
-                        <span>🏛️</span>
-                        <span>FACULTY OF COMPUTING</span>
                     </div>
                 </div>
             </div>
@@ -383,7 +504,7 @@
             @endphp
             <div class="section" style="border-left: 4px solid {{ $perfLevel['color'] ?? '#1976D2' }};">
                 <h2 class="section-title">📊 Course Performance</h2>
-                
+
                 <!-- Overall Performance Score Card -->
                 @if($hasGrades && $averageScore !== null)
                     <div style="background: {{ $perfLevel['bg_color'] ?? '#F5F5F5' }}; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
@@ -474,68 +595,105 @@
             </div>
 
             <div class="section">
-                <h2 class="section-title">Assignments</h2>
+                <h2 class="section-title">📝 Assignments</h2>
                 @if($assignments->count() > 0)
-                    <div style="overflow-x: auto;">
-                        <table class="assignments-table">
-                            <thead>
-                                <tr>
-                                    <th>Assignment</th>
-                                    <th>Due Date</th>
-                                    <th>Status</th>
-                                    <th>Score</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($assignments as $assignment)
-                                    <tr>
-                                        <td>
-                                            <div class="assignment-title">
-                                                <a href="{{ route('assignment.submission', $assignment->id) }}">
-                                                    {{ $assignment->title }}
-                                                </a>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            {{ $assignment->due_date ? $assignment->due_date->format('M d, Y g:ia') : 'No due date' }}
-                                        </td>
-                                        <td>
-                                            @if($assignment->has_submission)
-                                                @if($assignment->submission_status === 'marked')
-                                                    <span class="badge badge-success">Graded</span>
+                    <div class="assignments-grid">
+                        @foreach($assignments as $assignment)
+                            <div class="assignment-card">
+                                <div class="assignment-card-header">
+                                    <h3 class="assignment-title">
+                                        <a href="{{ route('assignment.submission', $assignment->id) }}">
+                                            {{ $assignment->title }}
+                                        </a>
+                                    </h3>
+                                    @if($assignment->has_submission)
+                                        @if($assignment->submission_status === 'marked')
+                                            <span class="assignment-status-badge badge-success">
+                                                ✓ Graded
+                                            </span>
+                                        @else
+                                            <span class="assignment-status-badge badge-info">
+                                                📤 Submitted
+                                            </span>
+                                        @endif
+                                    @else
+                                        @if($assignment->due_date && $assignment->due_date->isPast())
+                                            <span class="assignment-status-badge badge-danger">
+                                                ⚠️ Overdue
+                                            </span>
+                                        @else
+                                            <span class="assignment-status-badge badge-warning">
+                                                ⏳ Pending
+                                            </span>
+                                        @endif
+                                    @endif
+                                </div>
+
+                                <div class="assignment-meta">
+                                    <div class="meta-item">
+                                        <span class="meta-item-icon">📅</span>
+                                        <span>
+                                            <strong>Due:</strong>
+                                            <span class="meta-item-value">
+                                                {{ $assignment->due_date ? $assignment->due_date->format('M d, Y g:ia') : 'No due date' }}
+                                            </span>
+                                        </span>
+                                    </div>
+                                    @if($assignment->due_date)
+                                        <div class="meta-item">
+                                            <span class="meta-item-icon">
+                                                @if($assignment->due_date->isPast())
+                                                    ⏰
                                                 @else
-                                                    <span class="badge badge-info">Submitted</span>
+                                                    ⏱️
                                                 @endif
-                                            @else
-                                                @if($assignment->due_date && $assignment->due_date->isPast())
-                                                    <span class="badge badge-danger">Overdue</span>
+                                            </span>
+                                            <span>
+                                                @if($assignment->due_date->isPast())
+                                                    <span style="color: #c62828;">Overdue by {{ $assignment->due_date->diffForHumans() }}</span>
                                                 @else
-                                                    <span class="badge badge-warning">Pending</span>
+                                                    <span style="color: #2e7d32;">Due in {{ $assignment->due_date->diffForHumans() }}</span>
                                                 @endif
+                                            </span>
+                                        </div>
+                                    @endif
+                                </div>
+
+                                @if($assignment->score !== null)
+                                    <div class="assignment-score">
+                                        <div class="score-label">Your Score</div>
+                                        <div class="score-value">
+                                            <span class="score-number">{{ number_format($assignment->score, 1) }}</span>
+                                            <span class="score-max">/ 100</span>
+                                            @if($assignment->grade)
+                                                <span class="score-grade">({{ $assignment->grade }})</span>
                                             @endif
-                                        </td>
-                                        <td>
-                                            @if($assignment->score !== null)
-                                                <strong>{{ $assignment->score }} / 100</strong>
-                                                @if($assignment->grade)
-                                                    <span style="font-weight: 600; color: var(--color-primary); margin-left: 8px;">({{ $assignment->grade }})</span>
-                                                @endif
-                                            @else
-                                                <span style="color: var(--muted);">-</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            <a href="{{ route('assignment.submission', $assignment->id) }}" style="color: var(--color-primary); text-decoration: none; font-weight: 500;">View</a>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="no-score">
+                                        @if($assignment->has_submission)
+                                            <span>⏳ Awaiting grading</span>
+                                        @else
+                                            <span>No submission yet</span>
+                                        @endif
+                                    </div>
+                                @endif
+
+                                <a href="{{ route('assignment.submission', $assignment->id) }}" class="assignment-action">
+                                    @if($assignment->has_submission)
+                                        View Submission
+                                    @else
+                                        Submit Assignment
+                                    @endif
+                                </a>
+                            </div>
+                        @endforeach
                     </div>
                 @else
                     <div class="empty-state">
-                        <p>No assignments available for this course yet.</p>
+                        <div style="font-size: 48px; margin-bottom: 16px;">📝</div>
+                        <p style="font-size: 16px; color: var(--muted);">No assignments available for this course yet.</p>
                     </div>
                 @endif
             </div>
@@ -546,7 +704,7 @@
     function toggleDropdown(element) {
         const dropdown = element.nextElementSibling;
         const isActive = dropdown.classList.contains('active');
-        
+
         // Close all dropdowns
         document.querySelectorAll('.dropdown-menu').forEach(menu => {
             menu.classList.remove('active');
@@ -554,7 +712,7 @@
         document.querySelectorAll('.dropdown-toggle').forEach(toggle => {
             toggle.classList.remove('active');
         });
-        
+
         // Toggle current dropdown
         if (!isActive) {
             dropdown.classList.add('active');
@@ -566,7 +724,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         const dropdown = document.getElementById('coursesDropdown');
         const toggle = dropdown ? dropdown.previousElementSibling : null;
-        
+
         @if(request()->routeIs('student.course.show'))
             // Open dropdown and highlight active course when viewing a course
             if (dropdown && toggle) {
