@@ -99,10 +99,15 @@ class LecturerController extends Controller
                 $query->where('visibility', $request->visibility);
             }
             
-            // Add pagination - limit to 5 assignments per page (Capacity improvement)
-            $assignments = $query->withCount('submissions')
+            // Add pagination - limit to 3 assignments per page (Capacity improvement)
+            $assignments = $query->withCount([
+                'submissions',
+                'submissions as pending_grading_count' => function ($query) {
+                    $query->whereNull('score');
+                }
+            ])
                 ->orderBy('created_at', 'desc')
-                ->paginate(5)
+                ->paginate(3)
                 ->withQueryString(); // Preserve query parameters in pagination links
 
             // Optimize analytics queries using assignment IDs from paginated results

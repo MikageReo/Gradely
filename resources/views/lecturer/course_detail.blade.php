@@ -195,11 +195,11 @@
         .btn-secondary:hover {
             background: #616161;
         }
-        /* Assignments Grid */
-        .assignments-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-            gap: 20px;
+        /* Assignments List */
+        .assignments-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
         .assignment-card {
             background: var(--white);
@@ -209,6 +209,9 @@
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
+            display: flex;
+            align-items: center;
+            gap: 20px;
         }
         .assignment-card::before {
             content: '';
@@ -221,8 +224,8 @@
             transition: width 0.3s ease;
         }
         .assignment-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            transform: translateX(4px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             border-color: var(--color-secondary);
         }
         .assignment-card:hover::before {
@@ -230,10 +233,10 @@
         }
         .assignment-card-header {
             display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 16px;
-            gap: 12px;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+            min-width: 200px;
         }
         .assignment-title {
             font-weight: 600;
@@ -245,9 +248,10 @@
         }
         .assignment-badges {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             gap: 6px;
-            align-items: flex-end;
+            align-items: center;
+            flex-wrap: wrap;
         }
         .badge {
             display: inline-flex;
@@ -281,9 +285,11 @@
         }
         .assignment-meta {
             display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 16px;
+            flex-direction: row;
+            gap: 20px;
+            flex-wrap: wrap;
+            flex: 1;
+            min-width: 250px;
         }
         .meta-item {
             display: flex;
@@ -291,6 +297,7 @@
             gap: 8px;
             font-size: 14px;
             color: var(--muted);
+            white-space: nowrap;
         }
         .meta-item-icon {
             font-size: 16px;
@@ -303,36 +310,37 @@
         }
         .submissions-info {
             background: linear-gradient(135deg, #E0F2F1 0%, #B2DFDB 100%);
-            border-radius: 10px;
-            padding: 16px;
-            margin-bottom: 16px;
+            border-radius: 8px;
+            padding: 12px 16px;
             text-align: center;
+            min-width: 100px;
+            flex-shrink: 0;
         }
         .submissions-label {
-            font-size: 12px;
+            font-size: 10px;
             color: var(--muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
         }
         .submissions-value {
-            font-size: 32px;
+            font-size: 20px;
             font-weight: 700;
             color: var(--color-secondary);
+            line-height: 1.2;
         }
         .submissions-text {
-            font-size: 13px;
+            font-size: 11px;
             color: var(--muted);
-            margin-top: 4px;
+            margin-top: 2px;
         }
         .assignment-actions {
             display: flex;
             gap: 8px;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
+            flex-shrink: 0;
         }
         .btn-action {
-            flex: 1;
-            min-width: 100px;
             padding: 10px 16px;
             border-radius: 8px;
             font-weight: 600;
@@ -345,6 +353,7 @@
             justify-content: center;
             gap: 6px;
             border: none;
+            white-space: nowrap;
         }
         .btn-grade {
             background: var(--color-secondary);
@@ -554,17 +563,20 @@
             font-weight: 600;
         }
         @media (max-width: 768px) {
-            .assignments-grid {
-                grid-template-columns: 1fr;
+            .assignment-card {
+                flex-direction: column;
+                align-items: stretch;
             }
             .assignment-card-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 12px;
+                min-width: auto;
             }
-            .assignment-badges {
-                flex-direction: row;
-                align-items: flex-start;
+            .assignment-meta {
+                flex-direction: column;
+                gap: 12px;
+                min-width: auto;
+            }
+            .meta-item {
+                white-space: normal;
             }
             .assignment-actions {
                 flex-direction: column;
@@ -671,7 +683,7 @@
                 </form>
 
                 @if($assignments->count() > 0)
-                    <div class="assignments-grid">
+                    <div class="assignments-list">
                         @foreach($assignments as $assignment)
                             <div class="assignment-card">
                                 <div class="assignment-card-header">
@@ -722,7 +734,7 @@
 
                                 <div class="submissions-info">
                                     <div class="submissions-label">Submissions</div>
-                                    <div class="submissions-value">{{ $assignment->submissions_count ?? 0 }}</div>
+                                    <div class="submissions-value">{{ $assignment->submissions_count ?? 0 }}/{{ $totalStudents }}</div>
                                     <div class="submissions-text">
                                         @if(($assignment->submissions_count ?? 0) > 0)
                                             {{ $assignment->submissions_count }} student{{ $assignment->submissions_count > 1 ? 's' : '' }} submitted
@@ -734,15 +746,15 @@
 
                                 <div class="assignment-actions">
                                     <a href="{{ route('lecturer.grading', [$course->id, $assignment->id]) }}" class="btn-action btn-grade">
-                                        📊 Grade ({{ $assignment->submissions_count ?? 0 }})
+                                        📊 Grade ({{ $assignment->pending_grading_count ?? 0 }})
                                     </a>
                                     <a href="{{ route('lecturer.assignment.edit', [$course->id, $assignment->id]) }}" class="btn-action btn-edit">
                                         ✏️ Edit
                                     </a>
-                                    <form action="{{ route('lecturer.assignment.delete', [$course->id, $assignment->id]) }}" method="POST" style="flex: 1; min-width: 100px;" onsubmit="return confirm('Are you sure you want to delete this assignment? This action cannot be undone.');">
+                                    <form action="{{ route('lecturer.assignment.delete', [$course->id, $assignment->id]) }}" method="POST" style="display: flex;" onsubmit="return confirm('Are you sure you want to delete this assignment? This action cannot be undone.');">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn-action btn-delete" style="width: 100%;">
+                                        <button type="submit" class="btn-action btn-delete">
                                             🗑️ Delete
                                         </button>
                                     </form>

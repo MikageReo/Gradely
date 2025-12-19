@@ -179,13 +179,6 @@
                         <div class="stat-card-label">Total Courses</div>
                     </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-card-icon">🎓</div>
-                    <div class="stat-card-content">
-                        <div class="stat-card-value">{{ $totalEnrolledStudents ?? 0 }}</div>
-                        <div class="stat-card-label">Enrolled Students</div>
-                    </div>
-                </div>
             </div>
 
             <!-- Quick Actions -->

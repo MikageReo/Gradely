@@ -9,6 +9,7 @@ use App\Models\Submissions;
 use App\Models\CourseStudent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class AdminDashboardController extends Controller
 {
@@ -32,7 +33,9 @@ class AdminDashboardController extends Controller
         $completedGrading = Submissions::whereNotNull('score')->count();
         
         // Get total enrolled students (distinct students across all courses)
-        $totalEnrolledStudents = CourseStudent::distinct('student_id')->count();
+        $totalEnrolledStudents = DB::table('course_student')
+            ->select(DB::raw('COUNT(DISTINCT student_id) as count'))
+            ->value('count') ?? 0;
         
         // Get recent courses
         $recentCourses = Courses::withCount(['courseLecturers'])
@@ -42,9 +45,21 @@ class AdminDashboardController extends Controller
         
         // Calculate students per course
         foreach ($recentCourses as $course) {
-            $totalStudentsInCourse = CourseStudent::whereHas('courseLecturer', function($query) use ($course) {
-                $query->where('course_id', $course->id);
-            })->distinct('student_id')->count();
+            // Get all course_lecturer_ids for this course
+            $courseLecturerIds = DB::table('course_lecturer')
+                ->where('course_id', $course->id)
+                ->pluck('id');
+            
+            // Count distinct students enrolled in any section of this course
+            if ($courseLecturerIds->isNotEmpty()) {
+                $totalStudentsInCourse = DB::table('course_student')
+                    ->whereIn('course_lecturer_id', $courseLecturerIds)
+                    ->select(DB::raw('COUNT(DISTINCT student_id) as count'))
+                    ->value('count') ?? 0;
+            } else {
+                $totalStudentsInCourse = 0;
+            }
+            
             $course->total_students = $totalStudentsInCourse;
         }
 
