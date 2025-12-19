@@ -158,14 +158,17 @@ Route::middleware('auth')->group(function () {
     Route::get('/lecturer/course/{courseId}/assignment/{assignmentId}/edit', [LecturerController::class, 'editAssignment'])
         ->name('lecturer.assignment.edit');
 
-    // Lecturer Assignment Management
+    // Lecturer Assignment Management (with rate limiting for capacity)
     Route::post('/lecturer/course/{courseId}/assignment', [LecturerController::class, 'storeAssignment'])
+        ->middleware('throttle:30,1') // 30 requests per minute
         ->name('lecturer.assignment.store');
     
     Route::put('/lecturer/course/{courseId}/assignment/{assignmentId}', [LecturerController::class, 'updateAssignment'])
+        ->middleware('throttle:30,1') // 30 requests per minute
         ->name('lecturer.assignment.update');
     
     Route::delete('/lecturer/course/{courseId}/assignment/{assignmentId}', [LecturerController::class, 'deleteAssignment'])
+        ->middleware('throttle:20,1') // 20 requests per minute for delete operations
         ->name('lecturer.assignment.delete');
     
     Route::get('/lecturer/course/{courseId}/assignment/{assignmentId}/grading', [LecturerController::class, 'viewGrading'])

@@ -114,20 +114,21 @@
             margin-bottom: 24px;
         }
         .analytics-card {
-            background: var(--white);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            color: white;
         }
         .analytics-label {
             font-size: 13px;
-            color: var(--muted);
+            color: rgba(255,255,255,0.9);
             margin-bottom: 8px;
         }
         .analytics-value {
             font-size: 32px;
             font-weight: 700;
-            color: var(--color-primary);
+            color: white;
         }
         /* Section */
         .section {
@@ -307,7 +308,7 @@
         .form-control {
             width: 100%;
             padding: 10px;
-            border: 1px solid #ddd;
+            border: 2px solid #999;
             border-radius: 6px;
             font-size: 14px;
             font-family: var(--font);
@@ -315,6 +316,7 @@
         .form-control:focus {
             outline: none;
             border-color: var(--color-primary);
+            border-width: 2px;
         }
         textarea.form-control {
             resize: vertical;
@@ -362,6 +364,73 @@
                 opacity: 0;
             }
         }
+        /* Simple Pagination Styles */
+        .pagination-wrapper {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid #f0f0f0;
+        }
+        .simple-pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .pagination-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 16px;
+            min-width: 40px;
+            height: 36px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            border: 2px solid var(--color-primary);
+            background: var(--color-primary);
+            color: var(--white);
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(25, 118, 210, 0.15);
+        }
+        .pagination-btn:hover:not(.disabled) {
+            background: #1565C0;
+            border-color: #1565C0;
+            color: var(--white);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(25, 118, 210, 0.3);
+        }
+        .pagination-btn:active:not(.disabled) {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(25, 118, 210, 0.2);
+        }
+        .pagination-btn.disabled {
+            background: #e0e0e0;
+            color: #999;
+            border-color: #d0d0d0;
+            cursor: not-allowed;
+            opacity: 0.5;
+            box-shadow: none;
+        }
+        .pagination-btn.disabled:hover {
+            transform: none;
+            box-shadow: none;
+            background: #e0e0e0;
+            border-color: #d0d0d0;
+        }
+        .pagination-info {
+            color: var(--muted);
+            font-size: 14px;
+            white-space: nowrap;
+        }
+        .pagination-info strong {
+            color: #222;
+            font-weight: 600;
+        }
         @media (max-width: 768px) {
             .assignments-table {
                 font-size: 12px;
@@ -372,6 +441,19 @@
             }
             .action-buttons {
                 flex-direction: column;
+            }
+            .simple-pagination {
+                gap: 12px;
+                flex-wrap: wrap;
+            }
+            .pagination-btn {
+                padding: 6px 12px;
+                min-width: 36px;
+                height: 32px;
+                font-size: 13px;
+            }
+            .pagination-info {
+                font-size: 13px;
             }
         }
     </style>
@@ -423,6 +505,41 @@
                     <h2 class="section-title">Assignments</h2>
                     <a class="btn-primary" href="{{ route('lecturer.assignment.create', $course->id) }}">+ Create Assignment</a>
                 </div>
+                
+                <!-- Search and Filter Form (Functional Appropriateness) -->
+                <form method="GET" action="{{ route('lecturer.course.show', $course->id) }}" style="margin-bottom: 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <label for="search" style="display: block; margin-bottom: 6px; font-size: 13px; color: var(--muted);">Search</label>
+                        <input type="text" id="search" name="search" value="{{ request('search') }}" 
+                               placeholder="Search by title..." 
+                               class="form-control" style="width: 100%;">
+                    </div>
+                    <div style="min-width: 150px;">
+                        <label for="status" style="display: block; margin-bottom: 6px; font-size: 13px; color: var(--muted);">Status</label>
+                        <select id="status" name="status" class="form-control" style="width: 100%;">
+                            <option value="">All Status</option>
+                            <option value="open" {{ request('status') === 'open' ? 'selected' : '' }}>Open</option>
+                            <option value="close" {{ request('status') === 'close' ? 'selected' : '' }}>Close</option>
+                        </select>
+                    </div>
+                    <div style="min-width: 150px;">
+                        <label for="visibility" style="display: block; margin-bottom: 6px; font-size: 13px; color: var(--muted);">Visibility</label>
+                        <select id="visibility" name="visibility" class="form-control" style="width: 100%;">
+                            <option value="">All Visibility</option>
+                            <option value="published" {{ request('visibility') === 'published' ? 'selected' : '' }}>Published</option>
+                            <option value="hidden" {{ request('visibility') === 'hidden' ? 'selected' : '' }}>Hidden</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button type="submit" class="btn-primary" style="height: 38px;">Filter</button>
+                    </div>
+                    @if(request('search') || request('status') || request('visibility'))
+                        <div>
+                            <a href="{{ route('lecturer.course.show', $course->id) }}" class="btn-secondary" style="height: 38px; display: inline-block; line-height: 38px;">Clear</a>
+                        </div>
+                    @endif
+                </form>
+                
                 @if($assignments->count() > 0)
                     <div style="overflow-x: auto;">
                         <table class="assignments-table">
@@ -480,6 +597,25 @@
                                 @endforeach
                             </tbody>
                         </table>
+                    </div>
+                    
+                    <!-- Pagination (Capacity improvement) -->
+                    <div class="pagination-wrapper">
+                        <div class="simple-pagination">
+                            <a href="{{ $assignments->previousPageUrl() }}" 
+                               class="pagination-btn {{ $assignments->onFirstPage() ? 'disabled' : '' }}"
+                               {{ $assignments->onFirstPage() ? 'onclick="return false;"' : '' }}>
+                                &lt;
+                            </a>
+                            <span class="pagination-info">
+                                Showing <strong>{{ $assignments->firstItem() ?? 0 }}</strong> to <strong>{{ $assignments->lastItem() ?? 0 }}</strong> of <strong>{{ $assignments->total() }}</strong> assignments
+                            </span>
+                            <a href="{{ $assignments->nextPageUrl() }}" 
+                               class="pagination-btn {{ !$assignments->hasMorePages() ? 'disabled' : '' }}"
+                               {{ !$assignments->hasMorePages() ? 'onclick="return false;"' : '' }}>
+                                &gt;
+                            </a>
+                        </div>
                     </div>
                 @else
                     <div style="text-align: center; padding: 40px 20px; color: var(--muted);">

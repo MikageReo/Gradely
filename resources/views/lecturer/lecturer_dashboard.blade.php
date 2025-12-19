@@ -68,7 +68,7 @@
     .course-card-header {
         height: 120px;
         position: relative;
-        background: linear-gradient(135deg, var(--color-primary) 0%, #1565C0 100%);
+        background: linear-gradient(135deg, #004D40 0%, #00796B 100%);
         display: flex;
         align-items: center;
         justify-content: center;

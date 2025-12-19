@@ -49,9 +49,17 @@
         width: 100%;
         padding: 10px 12px;
         border-radius: 8px;
-        border: 1px solid #d1d5db;
+        border: 2px solid #999;
         font-size: 14px;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    input[type="text"]:focus,
+    input[type="datetime-local"]:focus,
+    select:focus,
+    textarea:focus {
+        outline: none;
+        border-color: #1976D2;
+        border-width: 2px;
     }
     textarea {
         resize: vertical;
@@ -97,11 +105,173 @@
         font-weight: 600;
     }
     .back-link:hover { text-decoration: underline; }
+    /* File Upload Styles (matching student submission interface) */
+    .upload-section {
+        border: 2px dashed #BBDEFB;
+        border-radius: 8px;
+        padding: 30px;
+        text-align: center;
+        background: #F5F5F5;
+        margin-top: 8px;
+    }
+    .upload-section.has-files {
+        border-color: var(--color-primary);
+        background: #E3F2FD;
+    }
+    .file-input-wrapper {
+        margin-bottom: 15px;
+    }
+    .file-input {
+        display: none;
+    }
+    .file-input-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 24px;
+        background: #1976D2;
+        color: #fff;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background 0.2s;
+        font-size: 14px;
+    }
+    .file-input-label:hover {
+        background: #1565C0;
+    }
+    .file-list {
+        margin-top: 15px;
+        text-align: left;
+    }
+    .file-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        background: #fff;
+        border-radius: 4px;
+        margin-bottom: 8px;
+    }
+    .file-name {
+        font-size: 14px;
+        color: #222;
+    }
+    .file-remove {
+        background: #E53935;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        padding: 4px 8px;
+        cursor: pointer;
+        font-size: 12px;
+    }
+    .file-remove:hover {
+        background: #C62828;
+    }
+    .current-file {
+        margin-top: 12px;
+        padding: 10px;
+        background: #E8F5E9;
+        border-radius: 6px;
+        font-size: 13px;
+    }
+    .current-file-label {
+        font-weight: 600;
+        color: #2E7D32;
+        margin-bottom: 6px;
+    }
+    .current-file-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #1B5E20;
+    }
+    .current-file-item a {
+        margin-left: auto;
+        color: #1976D2;
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    .current-file-item a:hover {
+        text-decoration: underline;
+    }
     @media (max-width: 768px) {
         .form-shell { padding: 18px; }
         .actions { justify-content: center; }
+        .upload-section {
+            padding: 20px;
+        }
     }
 </style>
+@push('scripts')
+<script>
+    // Character counter for description field (Functional Appropriateness)
+    function updateCharCount() {
+        const textarea = document.getElementById('description');
+        const charCountText = document.getElementById('char-count-text');
+        const charCount = textarea.value.length;
+        charCountText.textContent = charCount;
+        
+        // Change color when approaching limit
+        const charCountDiv = document.getElementById('char-count');
+        if (charCount > 4500) {
+            charCountDiv.style.color = '#dc2626';
+        } else if (charCount > 4000) {
+            charCountDiv.style.color = '#ea580c';
+        } else {
+            charCountDiv.style.color = '#6b7280';
+        }
+    }
+    
+    // Initialize character count on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        updateCharCount();
+    });
+
+    // File upload handling (matching student submission interface)
+    const fileInput = document.getElementById('fileInput');
+    const fileList = document.getElementById('fileList');
+    const uploadSection = document.getElementById('uploadSection');
+    let selectedFile = null;
+
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                selectedFile = files[0];
+                updateFileList();
+            } else {
+                selectedFile = null;
+                updateFileList();
+            }
+        });
+
+        function updateFileList() {
+            fileList.innerHTML = '';
+            if (selectedFile) {
+                uploadSection.classList.add('has-files');
+
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <span class="file-name">${selectedFile.name}</span>
+                    <button type="button" class="file-remove" onclick="removeFile()">Remove</button>
+                `;
+                fileList.appendChild(fileItem);
+            } else {
+                uploadSection.classList.remove('has-files');
+            }
+        }
+
+        window.removeFile = function() {
+            selectedFile = null;
+            fileInput.value = '';
+            updateFileList();
+        };
+    }
+</script>
 @endpush
 
 @section('content')
@@ -117,6 +287,12 @@
             </div>
             <a href="{{ route('lecturer.course.show', $course->id) }}" class="back-link">← Back to course</a>
         </div>
+
+        @if (session('success'))
+            <div style="background:#d4edda;color:#155724;border:1px solid #c3e6cb;padding:12px;border-radius:8px;margin-bottom:12px;">
+                {{ session('success') }}
+            </div>
+        @endif
 
         @if ($errors->any())
             <div style="background:#fef2f2;color:#991b1b;border:1px solid #fecaca;padding:12px;border-radius:8px;margin-bottom:12px;">
@@ -145,7 +321,12 @@
 
                 <div>
                     <label for="description">Description</label>
-                    <textarea id="description" name="description" rows="5">{{ old('description', $assignment->description ?? '') }}</textarea>
+                    <textarea id="description" name="description" rows="5" maxlength="5000" 
+                              onkeyup="updateCharCount()" 
+                              oninput="updateCharCount()">{{ old('description', $assignment->description ?? '') }}</textarea>
+                    <div id="char-count" class="field-hint">
+                        <span id="char-count-text">0</span>/5000 characters
+                    </div>
                 </div>
 
                 <div style="display:grid;grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
@@ -172,13 +353,30 @@
 
                 <div>
                     <label for="attachment">Attachment</label>
-                    <input type="file" id="attachment" name="attachment" accept=".pdf,.doc,.docx,.txt">
-                    <div class="field-hint">Upload supporting materials (PDF, DOC, DOCX, TXT). Max 10MB.</div>
-                    @if($mode === 'edit' && ($assignment->attachment ?? false))
-                        <div style="margin-top:8px;font-size:13px;color:#374151;">
-                            Current: <a href="{{ url('/' . $assignment->attachment) }}" target="_blank" style="color:#1976D2;">{{ basename($assignment->attachment) }}</a>
+                    <div class="upload-section" id="uploadSection">
+                        <div class="file-input-wrapper">
+                            <input type="file" name="attachment" id="fileInput" class="file-input" accept=".pdf,.doc,.docx,.txt">
+                            <label for="fileInput" class="file-input-label">
+                                <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M5.5 13a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 13H11V9.413l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13H5.5z"/>
+                                    <path d="M9 13h2v5a1 1 0 11-2 0v-5z"/>
+                                </svg>
+                                Choose file to upload
+                            </label>
                         </div>
-                    @endif
+                        <div class="field-hint" style="margin-top: 10px;">Upload supporting materials (PDF, DOC, DOCX, TXT). Max 10MB.</div>
+                        <div class="file-list" id="fileList"></div>
+                        @if($mode === 'edit' && ($assignment->attachment ?? false))
+                            <div class="current-file">
+                                <div class="current-file-label">Current Attachment:</div>
+                                <div class="current-file-item">
+                                    <span>📎</span>
+                                    <span>{{ basename($assignment->attachment) }}</span>
+                                    <a href="{{ url('/' . $assignment->attachment) }}" target="_blank">View/Download</a>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
                 </div>
             </div>
 
