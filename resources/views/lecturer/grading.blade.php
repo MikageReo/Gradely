@@ -129,7 +129,7 @@
                             @endif
                         </td>
                         <td>
-                            <a href="{{ route('assignment.submission', $assignment->id) }}" class="btn-primary">View & Grade</a>
+                            <a href="{{ route('assignment.submission', ['assignmentId' => $assignment->id, 'student_id' => $submission->student_id]) }}" class="btn-primary">View & Grade</a>
                         </td>
                     </tr>
                 @endforeach

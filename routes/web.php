@@ -181,6 +181,12 @@ Route::middleware('auth')->group(function () {
     
     Route::post('/assignment/{assignmentId}/submission/grade', [SubmissionController::class, 'updateGrade'])
         ->name('assignment.submission.grade');
+    
+    // Protected File Download Routes
+    Route::get('/assignment/{assignmentId}/attachment/download', [SubmissionController::class, 'downloadAssignmentAttachment'])
+        ->name('assignment.attachment.download');
+    Route::get('/submission/{submissionId}/file/{fileId}/download', [SubmissionController::class, 'downloadSubmissionFile'])
+        ->name('submission.file.download');
 });
 
 // Add POST handler for login form

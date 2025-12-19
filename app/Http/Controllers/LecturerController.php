@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Courses;
 use App\Models\Assignments;
 use App\Models\Submissions;
+use App\Models\CourseLecturer;
+use App\Models\CourseStudent;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\File;
@@ -341,11 +343,30 @@ class LecturerController extends Controller
 
         $assignment = Assignments::where('id', $assignmentId)
             ->where('course_id', $courseId)
-            ->where('lecturer_id', $user->id)
             ->with('course')
             ->firstOrFail();
 
+        // Verify lecturer is assigned to this course or is the assignment creator
+        $isAssignedLecturer = CourseLecturer::where('course_id', $courseId)
+            ->where('lecturer_id', $user->id)
+            ->exists();
+        
+        if (!$isAssignedLecturer && $assignment->lecturer_id !== $user->id) {
+            abort(403, 'You are not authorized to view submissions for this assignment.');
+        }
+
+        // Only show submissions from students enrolled in this course
+        // Get all course_lecturer IDs for this course
+        $courseLecturerIds = CourseLecturer::where('course_id', $courseId)->pluck('id');
+        
+        // Get all student IDs enrolled in this course
+        $enrolledStudentIds = CourseStudent::whereIn('course_lecturer_id', $courseLecturerIds)
+            ->pluck('student_id')
+            ->unique();
+        
+        // Get submissions only from enrolled students
         $submissions = Submissions::where('assignment_id', $assignmentId)
+            ->whereIn('student_id', $enrolledStudentIds)
             ->with(['student', 'submissionFiles'])
             ->orderBy('submitted_at', 'desc')
             ->get();

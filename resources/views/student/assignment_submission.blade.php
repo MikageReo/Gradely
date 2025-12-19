@@ -683,7 +683,7 @@
                     <div class="assignment-file-item">
                         <span>📎</span>
                         <span>{{ basename($assignment->attachment) }}</span>
-                        <a href="{{ url('/') }}/{{ $assignment->attachment }}" target="_blank">View/Download</a>
+                        <a href="{{ route('assignment.attachment.download', $assignment->id) }}" target="_blank">View/Download</a>
                     </div>
                 </div>
             @endif
@@ -707,7 +707,7 @@
                         <div class="submitted-file-item">
                             <span>📄</span>
                             <span>{{ $file->original_filename }}</span>
-                            <a href="{{ url('/') }}/{{ $file->file_path }}" target="_blank" style="margin-left: auto; color: var(--color-primary); text-decoration: none; font-size: 12px;">View/Download</a>
+                            <a href="{{ route('submission.file.download', ['submissionId' => $submission->id, 'fileId' => $file->id]) }}" target="_blank" style="margin-left: auto; color: var(--color-primary); text-decoration: none; font-size: 12px;">View/Download</a>
                         </div>
                     @endforeach
                 </div>
@@ -719,6 +719,7 @@
                     <form action="{{ route('assignment.submission.grade', $assignment->id) }}" method="POST">
                         @csrf
                         <input type="hidden" name="submission_id" value="{{ $submission->id }}">
+                        <input type="hidden" name="student_id" value="{{ $submission->student_id }}">
                         <div style="margin-bottom: 15px;">
                             <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #222;">Score (0-100)</label>
                             <input type="number" name="score" value="{{ $submission->score ?? '' }}" min="0" max="100" step="0.01" style="width: 100%; max-width: 200px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
@@ -877,6 +878,10 @@
                             placeholder="{{ Auth::user()->role === 'lecturer' ? 'Reply to the student with guidance or clarification...' : 'Ask a question or add a comment for your lecturer about this assignment...' }}"
                             required
                         >
+                        @if(Auth::user()->role === 'lecturer' && $submission)
+                            <input type="hidden" name="student_id" value="{{ $submission->student_id }}">
+                        @endif
+                        <input type="text" name="comment" class="comment-input" placeholder="Write a comment..." required>
                         <button type="submit" class="comment-submit">
                             <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
@@ -930,6 +935,10 @@
                             placeholder="{{ Auth::user()->role === 'lecturer' ? 'Reply to the student with guidance or clarification...' : 'Ask a question or add a comment for your lecturer about this assignment...' }}"
                             required
                         >
+                        @if(Auth::user()->role === 'lecturer' && $submission)
+                            <input type="hidden" name="student_id" value="{{ $submission->student_id }}">
+                        @endif
+                        <input type="text" name="comment" class="comment-input" placeholder="Write a comment..." required>
                         <button type="submit" class="comment-submit">
                             <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
