@@ -788,7 +788,7 @@
                     </div>
                 </div>
 
-                @if ($assignment->attachment)
+                @if ($assignment->assignmentFiles && $assignment->assignmentFiles->count() > 0)
                     <div class="assignment-files">
                         <div class="assignment-files-title">
                             <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
@@ -798,12 +798,13 @@
                             </svg>
                             Assignment Files:
                         </div>
-                        <div class="assignment-file-item">
-                            <span>📎</span>
-                            <span>{{ basename($assignment->attachment) }}</span>
-                            <a href="{{ route('assignment.attachment.download', $assignment->id) }}"
-                                target="_blank">View/Download</a>
-                        </div>
+                        @foreach($assignment->assignmentFiles as $file)
+                            <div class="assignment-file-item">
+                                <span>📎</span>
+                                <span>{{ $file->original_filename }}</span>
+                                <a href="{{ url('/' . $file->file_path) }}" target="_blank">View/Download</a>
+                            </div>
+                        @endforeach
                     </div>
                 @endif
 

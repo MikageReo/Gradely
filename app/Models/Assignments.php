@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\Courses;
 use App\Models\User;
 use App\Models\Submissions;
+use App\Models\AssignmentFile;
 
 class Assignments extends Model
 {
@@ -46,5 +47,13 @@ class Assignments extends Model
     public function submissions()
     {
         return $this->hasMany(Submissions::class, 'assignment_id');
+    }
+
+    /**
+     * Get all files for this assignment
+     */
+    public function assignmentFiles()
+    {
+        return $this->hasMany(AssignmentFile::class, 'assignment_id');
     }
 }

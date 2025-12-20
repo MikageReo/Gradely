@@ -24,7 +24,7 @@ class SubmissionController extends Controller
      */
     public function show($assignmentId, Request $request)
     {
-        $assignment = Assignments::with(['course', 'lecturer'])
+        $assignment = Assignments::with(['course', 'lecturer', 'assignmentFiles'])
             ->findOrFail($assignmentId);
 
         $user = Auth::user();

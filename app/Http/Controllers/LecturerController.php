@@ -8,6 +8,7 @@ use App\Models\Assignments;
 use App\Models\Submissions;
 use App\Models\CourseLecturer;
 use App\Models\CourseStudent;
+use App\Models\AssignmentFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\File;
@@ -197,6 +198,7 @@ class LecturerController extends Controller
         $assignment = Assignments::where('id', $assignmentId)
             ->where('course_id', $courseId)
             ->where('lecturer_id', $user->id)
+            ->with('assignmentFiles')
             ->firstOrFail();
 
         return view('lecturer.assignment_form', [
@@ -233,13 +235,14 @@ class LecturerController extends Controller
                 'due_date' => 'nullable|date|after:now', // Validate future date
                 'status' => 'required|in:open,close',
                 'visibility' => 'required|in:published,hidden',
-                'attachment' => 'nullable|file|mimes:pdf,doc,docx,txt|max:10240',
+                'files' => 'nullable|array',
+                'files.*' => 'file|mimes:pdf,doc,docx,txt|max:10240', // 10MB max per file
             ], [
                 'title.required' => 'Assignment title is required.',
                 'title.max' => 'Title cannot exceed 255 characters.',
                 'description.max' => 'Description cannot exceed 5000 characters.',
                 'due_date.after' => 'Due date must be in the future.',
-                'attachment.max' => 'Attachment size cannot exceed 10MB.',
+                'files.*.max' => 'Each file size cannot exceed 10MB.',
             ]);
 
             $assignment = new Assignments();
@@ -251,28 +254,50 @@ class LecturerController extends Controller
             $assignment->status = $data['status'];
             $assignment->visibility = $data['visibility'];
 
-            if ($request->hasFile('attachment')) {
+            $assignment->save();
+
+            // Handle multiple file uploads
+            if ($request->hasFile('files')) {
                 try {
-                    $file = $request->file('attachment');
-                    $originalName = $file->getClientOriginalName();
-                    $publicPath = public_path('assignments');
-                    
-                    // Check disk space availability (Capacity improvement)
-                    $freeSpace = disk_free_space($publicPath);
-                    $fileSize = $file->getSize();
-                    if ($freeSpace !== false && $freeSpace < ($fileSize + 10485760)) { // Reserve 10MB buffer
-                        throw new \Exception('Insufficient disk space. Please free up space and try again.');
-                    }
+                    $publicPath = public_path('assignments/' . $assignment->id);
                     
                     // Create directory if it doesn't exist
                     if (!File::exists($publicPath)) {
                         File::makeDirectory($publicPath, 0755, true);
                     }
                     
-                    // Use unique filename to prevent conflicts
-                    $uniqueName = time() . '_' . uniqid() . '_' . $originalName;
-                    $file->move($publicPath, $uniqueName);
-                    $assignment->attachment = 'assignments/' . $uniqueName;
+                    // Check disk space availability (Capacity improvement)
+                    $freeSpace = disk_free_space($publicPath);
+                    $totalFileSize = 0;
+                    foreach ($request->file('files') as $file) {
+                        $totalFileSize += $file->getSize();
+                    }
+                    if ($freeSpace !== false && $freeSpace < ($totalFileSize + 10485760)) { // Reserve 10MB buffer
+                        throw new \Exception('Insufficient disk space. Please free up space and try again.');
+                    }
+                    
+                    // Store each file
+                    foreach ($request->file('files') as $file) {
+                        $originalName = $file->getClientOriginalName();
+                        $fileSize = $file->getSize();
+                        $fileType = $file->getMimeType();
+                        
+                        // Use unique filename to prevent conflicts
+                        $fileName = pathinfo($originalName, PATHINFO_FILENAME);
+                        $extension = pathinfo($originalName, PATHINFO_EXTENSION);
+                        $uniqueName = $fileName . '_' . time() . '_' . uniqid() . '.' . $extension;
+                        
+                        $file->move($publicPath, $uniqueName);
+                        $relativePath = 'assignments/' . $assignment->id . '/' . $uniqueName;
+                        
+                        AssignmentFile::create([
+                            'assignment_id' => $assignment->id,
+                            'file_path' => $relativePath,
+                            'original_filename' => $originalName,
+                            'file_type' => $fileType,
+                            'file_size' => $fileSize,
+                        ]);
+                    }
                 } catch (\Exception $e) {
                     DB::rollBack();
                     Log::error('File upload failed during assignment creation', [
@@ -280,11 +305,9 @@ class LecturerController extends Controller
                         'lecturer_id' => $user->id,
                         'course_id' => $courseId,
                     ]);
-                    return back()->withErrors(['attachment' => 'File upload failed: ' . $e->getMessage()])->withInput();
+                    return back()->withErrors(['files' => 'File upload failed: ' . $e->getMessage()])->withInput();
                 }
             }
-
-            $assignment->save();
             DB::commit();
             
             // Log successful creation (Availability improvement)
@@ -345,12 +368,13 @@ class LecturerController extends Controller
                 'due_date' => 'nullable|date',
                 'status' => 'required|in:open,close',
                 'visibility' => 'required|in:published,hidden',
-                'attachment' => 'nullable|file|mimes:pdf,doc,docx,txt|max:10240',
+                'files' => 'nullable|array',
+                'files.*' => 'file|mimes:pdf,doc,docx,txt|max:10240', // 10MB max per file
             ], [
                 'title.required' => 'Assignment title is required.',
                 'title.max' => 'Title cannot exceed 255 characters.',
                 'description.max' => 'Description cannot exceed 5000 characters.',
-                'attachment.max' => 'Attachment size cannot exceed 10MB.',
+                'files.*.max' => 'Each file size cannot exceed 10MB.',
             ]);
 
             $assignment->title = $data['title'];
@@ -359,38 +383,60 @@ class LecturerController extends Controller
             $assignment->status = $data['status'];
             $assignment->visibility = $data['visibility'];
 
-            // Handle attachment update
-            if ($request->hasFile('attachment')) {
+            $assignment->save();
+
+            // Handle multiple file uploads (only if new files are uploaded)
+            if ($request->hasFile('files')) {
                 try {
-                    // Delete old attachment if exists
-                    if ($assignment->attachment) {
-                        $oldFilePath = public_path($assignment->attachment);
-                        if (File::exists($oldFilePath)) {
-                            File::delete($oldFilePath);
-                        }
-                    }
-                    
-                    // Store new attachment
-                    $file = $request->file('attachment');
-                    $originalName = $file->getClientOriginalName();
-                    $publicPath = public_path('assignments');
-                    
-                    // Check disk space availability (Capacity improvement)
-                    $freeSpace = disk_free_space($publicPath);
-                    $fileSize = $file->getSize();
-                    if ($freeSpace !== false && $freeSpace < ($fileSize + 10485760)) { // Reserve 10MB buffer
-                        throw new \Exception('Insufficient disk space. Please free up space and try again.');
-                    }
+                    $publicPath = public_path('assignments/' . $assignment->id);
                     
                     // Create directory if it doesn't exist
                     if (!File::exists($publicPath)) {
                         File::makeDirectory($publicPath, 0755, true);
                     }
                     
-                    // Use unique filename to prevent conflicts
-                    $uniqueName = time() . '_' . uniqid() . '_' . $originalName;
-                    $file->move($publicPath, $uniqueName);
-                    $assignment->attachment = 'assignments/' . $uniqueName;
+                    // Check disk space availability (Capacity improvement)
+                    $freeSpace = disk_free_space($publicPath);
+                    $totalFileSize = 0;
+                    foreach ($request->file('files') as $file) {
+                        $totalFileSize += $file->getSize();
+                    }
+                    if ($freeSpace !== false && $freeSpace < ($totalFileSize + 10485760)) { // Reserve 10MB buffer
+                        throw new \Exception('Insufficient disk space. Please free up space and try again.');
+                    }
+                    
+                    // Delete old files if requested (when files are uploaded, old ones are replaced)
+                    $oldFiles = AssignmentFile::where('assignment_id', $assignment->id)->get();
+                    foreach ($oldFiles as $oldFile) {
+                        $oldFilePath = public_path($oldFile->file_path);
+                        if (File::exists($oldFilePath)) {
+                            File::delete($oldFilePath);
+                        }
+                        $oldFile->delete();
+                    }
+                    
+                    // Store new files
+                    foreach ($request->file('files') as $file) {
+                        $originalName = $file->getClientOriginalName();
+                        $fileSize = $file->getSize();
+                        $fileType = $file->getMimeType();
+                        
+                        // Use unique filename to prevent conflicts
+                        $fileName = pathinfo($originalName, PATHINFO_FILENAME);
+                        $extension = pathinfo($originalName, PATHINFO_EXTENSION);
+                        $uniqueName = $fileName . '_' . time() . '_' . uniqid() . '.' . $extension;
+                        
+                        $file->move($publicPath, $uniqueName);
+                        $relativePath = 'assignments/' . $assignment->id . '/' . $uniqueName;
+                        
+                        AssignmentFile::create([
+                            'assignment_id' => $assignment->id,
+                            'file_path' => $relativePath,
+                            'original_filename' => $originalName,
+                            'file_type' => $fileType,
+                            'file_size' => $fileSize,
+                        ]);
+                    }
                 } catch (\Exception $e) {
                     DB::rollBack();
                     Log::error('File upload failed during assignment update', [
@@ -399,12 +445,11 @@ class LecturerController extends Controller
                         'lecturer_id' => $user->id,
                         'course_id' => $courseId,
                     ]);
-                    return back()->withErrors(['attachment' => 'File upload failed: ' . $e->getMessage()])->withInput();
+                    return back()->withErrors(['files' => 'File upload failed: ' . $e->getMessage()])->withInput();
                 }
             }
-            // If no new file is uploaded, keep the existing attachment (do nothing)
+            // If no new files are uploaded, keep the existing files (do nothing)
 
-            $assignment->save();
             DB::commit();
             
             // Log successful update (Availability improvement)
@@ -459,12 +504,20 @@ class LecturerController extends Controller
                 ->where('lecturer_id', $user->id)
                 ->firstOrFail();
 
-            // Delete attachment if exists
-            if ($assignment->attachment) {
-                $filePath = public_path($assignment->attachment);
+            // Delete all assignment files
+            $assignmentFiles = AssignmentFile::where('assignment_id', $assignmentId)->get();
+            foreach ($assignmentFiles as $assignmentFile) {
+                $filePath = public_path($assignmentFile->file_path);
                 if (File::exists($filePath)) {
                     File::delete($filePath);
                 }
+                $assignmentFile->delete();
+            }
+            
+            // Delete assignment directory if exists
+            $assignmentDir = public_path('assignments/' . $assignmentId);
+            if (File::exists($assignmentDir)) {
+                File::deleteDirectory($assignmentDir);
             }
 
             $assignment->delete();

@@ -230,45 +230,47 @@
         updateCharCount();
     });
 
-    // File upload handling (matching student submission interface)
+    // File upload handling (matching student submission interface - multiple files)
     const fileInput = document.getElementById('fileInput');
     const fileList = document.getElementById('fileList');
     const uploadSection = document.getElementById('uploadSection');
-    let selectedFile = null;
+    const selectedFiles = [];
 
     if (fileInput) {
         fileInput.addEventListener('change', function(e) {
-            const files = e.target.files;
-            if (files.length > 0) {
-                selectedFile = files[0];
-                updateFileList();
-            } else {
-                selectedFile = null;
-                updateFileList();
-            }
+            const files = Array.from(e.target.files);
+            selectedFiles.length = 0;
+            selectedFiles.push(...files);
+            updateFileList();
         });
 
         function updateFileList() {
             fileList.innerHTML = '';
-            if (selectedFile) {
+            if (selectedFiles.length > 0) {
                 uploadSection.classList.add('has-files');
 
-                const fileItem = document.createElement('div');
-                fileItem.className = 'file-item';
-                fileItem.innerHTML = `
-                    <span class="file-name">${selectedFile.name}</span>
-                    <button type="button" class="file-remove" onclick="removeFile()">Remove</button>
-                `;
-                fileList.appendChild(fileItem);
+                selectedFiles.forEach((file, index) => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    fileItem.innerHTML = `
+                        <span class="file-name">${file.name}</span>
+                        <button type="button" class="file-remove" onclick="removeFile(${index})">Remove</button>
+                    `;
+                    fileList.appendChild(fileItem);
+                });
             } else {
                 uploadSection.classList.remove('has-files');
             }
         }
 
-        window.removeFile = function() {
-            selectedFile = null;
-            fileInput.value = '';
+        window.removeFile = function(index) {
+            selectedFiles.splice(index, 1);
             updateFileList();
+            
+            // Update the file input
+            const dt = new DataTransfer();
+            selectedFiles.forEach(file => dt.items.add(file));
+            fileInput.files = dt.files;
         };
     }
 </script>
@@ -352,28 +354,30 @@
                 </div>
 
                 <div>
-                    <label for="attachment">Attachment</label>
+                    <label for="files">Attachments</label>
                     <div class="upload-section" id="uploadSection">
                         <div class="file-input-wrapper">
-                            <input type="file" name="attachment" id="fileInput" class="file-input" accept=".pdf,.doc,.docx,.txt">
+                            <input type="file" name="files[]" id="fileInput" class="file-input" multiple accept=".pdf,.doc,.docx,.txt">
                             <label for="fileInput" class="file-input-label">
                                 <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M5.5 13a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 13H11V9.413l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13H5.5z"/>
                                     <path d="M9 13h2v5a1 1 0 11-2 0v-5z"/>
                                 </svg>
-                                Choose file to upload
+                                Choose files to upload
                             </label>
                         </div>
-                        <div class="field-hint" style="margin-top: 10px;">Upload supporting materials (PDF, DOC, DOCX, TXT). Max 10MB.</div>
+                        <div class="field-hint" style="margin-top: 10px;">Upload supporting materials (PDF, DOC, DOCX, TXT). Max 10MB per file.</div>
                         <div class="file-list" id="fileList"></div>
-                        @if($mode === 'edit' && ($assignment->attachment ?? false))
+                        @if($mode === 'edit' && $assignment->assignmentFiles && $assignment->assignmentFiles->count() > 0)
                             <div class="current-file">
-                                <div class="current-file-label">Current Attachment:</div>
-                                <div class="current-file-item">
-                                    <span>📎</span>
-                                    <span>{{ basename($assignment->attachment) }}</span>
-                                    <a href="{{ url('/' . $assignment->attachment) }}" target="_blank">View/Download</a>
-                                </div>
+                                <div class="current-file-label">Current Attachments:</div>
+                                @foreach($assignment->assignmentFiles as $file)
+                                    <div class="current-file-item">
+                                        <span>📎</span>
+                                        <span>{{ $file->original_filename }}</span>
+                                        <a href="{{ url('/' . $file->file_path) }}" target="_blank">View/Download</a>
+                                    </div>
+                                @endforeach
                             </div>
                         @endif
                     </div>
