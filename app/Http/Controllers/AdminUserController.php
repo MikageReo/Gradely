@@ -28,29 +28,30 @@ class AdminUserController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email:rfc,dns|max:255|unique:users,email',
+            'password' => 'required|string|min:8|confirmed',
             'role' => 'required|in:student,lecturer',
         ], [
             'name.required' => 'Please add the Full Name field.',
             'email.required' => 'Please add the Email field.',
             'email.email' => 'Please enter a valid email address (e.g. example@gmail.com).',
             'email.unique' => 'This email is already taken.',
+            'password.required' => 'Please add the Password field.',
+            'password.min' => 'Password must be at least 8 characters.',
+            'password.confirmed' => 'Password confirmation does not match.',
             'role.required' => 'Please select a Role.',
             'role.in' => 'Role must be either Student or Lecturer.',
         ]);
 
-        // Generate temporary password
-        $temporaryPassword = $this->generatePassword(12);
-
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
-            'password' => Hash::make($temporaryPassword),
+            'password' => Hash::make($data['password']),
             'role' => $data['role'],
         ]);
 
-        // Send welcome email with temporary password
+        // Send welcome email with login credentials
         try {
-            Mail::to($user->email)->send(new UserRegisteredMail($user, $temporaryPassword));
+            Mail::to($user->email)->send(new UserRegisteredMail($user, $data['password']));
         } catch (\Exception $e) {
             // Log error but don't fail the registration
             Log::error('Failed to send registration email to ' . $user->email . ': ' . $e->getMessage());
@@ -132,27 +133,47 @@ class AdminUserController extends Controller
         }
 
         $messages = [];
+        $totalProcessed = count($rows) - 1; // Exclude header row
+        $rejected = count($duplicateLines) + count($errorLines);
+        
+        // Success message with count
         if ($created > 0) {
-            $messages['success'] = "$created users registered successfully!";
+            $messages['success'] = "✅ $created user(s) registered successfully!";
         }
+        
+        // Duplicate emails - show which emails are taken
         if (count($duplicateLines) > 0) {
-            $firstFive = array_slice($duplicateLines, 0, 5);
-            $lines = implode(', ', $firstFive);
-            $extra = count($duplicateLines) - 5;
+            // Get the actual duplicate emails for display
+            $duplicateEmails = [];
+            foreach ($duplicateLines as $lineNum) {
+                $row = $rows[$lineNum - 1]; // Convert back to 0-indexed
+                $email = $row[$emailIdx] ?? 'Unknown';
+                $duplicateEmails[] = $email;
+            }
+            
+            $emailList = implode(', ', array_slice($duplicateEmails, 0, 5));
+            $extra = count($duplicateEmails) - 5;
+            
             if ($extra > 0) {
-                $messages['error'] = 'The following lines have emails that already exist: ' . $lines . ' ... and ' . $extra . ' more. You have ' . count($duplicateLines) . ' repeated email fields. Please fix the Excel file.';
+                $messages['warning'] = "⚠️ " . count($duplicateLines) . " user(s) rejected - emails already taken: $emailList ... and $extra more.";
             } else {
-                $messages['error'] = 'The following lines have emails that already exist: ' . $lines . '.';
+                $messages['warning'] = "⚠️ " . count($duplicateLines) . " user(s) rejected - emails already taken: $emailList";
             }
         }
+        
+        // Invalid data errors
         if (count($errorLines) > 0) {
-            if (count($errorLines) <= 3) {
-                $lines = implode(', ', $errorLines);
-                $messages['error'] = ($messages['error'] ?? '') . ' The following lines have invalid or missing data: ' . $lines . '.';
-            } else {
-                $messages['error'] = ($messages['error'] ?? '') . ' Some users have invalid data. Please fix the Excel file.';
-            }
+            $lines = implode(', ', array_slice($errorLines, 0, 5));
+            $messages['error'] = "❌ " . count($errorLines) . " user(s) rejected - invalid or missing data on line(s): $lines";
         }
+        
+        // Summary message if there were any issues
+        if ($rejected > 0 && $created > 0) {
+            $messages['info'] = "📊 Summary: $created added, $rejected rejected out of $totalProcessed total.";
+        } elseif ($created == 0) {
+            $messages['error'] = ($messages['error'] ?? '') . " No users were registered. Please check your file.";
+        }
+        
         return back()->with($messages);
     }
 
