@@ -184,6 +184,12 @@ Route::middleware('auth')->group(function () {
         ->name('assignment.attachment.download');
     Route::get('/submission/{submissionId}/file/{fileId}/download', [SubmissionController::class, 'downloadSubmissionFile'])
         ->name('submission.file.download');
+
+    // Submission File Management Routes
+    Route::delete('/submission/{submissionId}/file/{fileId}', [SubmissionController::class, 'deleteSubmissionFile'])
+        ->name('submission.file.delete');
+    Route::post('/submission/{submissionId}/file/{fileId}/replace', [SubmissionController::class, 'replaceSubmissionFile'])
+        ->name('submission.file.replace');
 });
 
 // Add POST handler for login form

@@ -74,7 +74,7 @@ class SubmissionController extends Controller
 
             // Verify the student is enrolled in the course
             $isEnrolled = CourseStudent::where('student_id', $studentId)
-                ->whereHas('courseLecturer', function($query) use ($assignment) {
+                ->whereHas('courseLecturer', function ($query) use ($assignment) {
                     $query->where('course_id', $assignment->course_id);
                 })
                 ->exists();
@@ -98,7 +98,7 @@ class SubmissionController extends Controller
                 ->where('user_id', '!=', $user->id)
                 ->whereNull('read_at')
                 ->count();
-            
+
             // Mark all comments from other users as read when viewing the submission
             SubmissionComments::where('submission_id', $submission->id)
                 ->where('user_id', '!=', $user->id)
@@ -120,7 +120,7 @@ class SubmissionController extends Controller
     {
         $request->validate([
             'files' => 'required|array|min:1',
-            'files.*' => 'file|mimes:pdf,doc,docx,txt,rtf,odt|max:10240', // 10MB max per file
+            'files.*' => 'file|mimes:pdf,doc,docx,txt,rtf,odt|max:20480', // 20MB max per file
         ]);
 
         $assignment = Assignments::findOrFail($assignmentId);
@@ -254,7 +254,7 @@ class SubmissionController extends Controller
 
             // Verify the student is enrolled in the course
             $isEnrolled = CourseStudent::where('student_id', $studentId)
-                ->whereHas('courseLecturer', function($query) use ($assignment) {
+                ->whereHas('courseLecturer', function ($query) use ($assignment) {
                     $query->where('course_id', $assignment->course_id);
                 })
                 ->exists();
@@ -352,7 +352,7 @@ class SubmissionController extends Controller
 
         // Verify the student is enrolled in the course
         $isEnrolled = CourseStudent::where('student_id', $submission->student_id)
-            ->whereHas('courseLecturer', function($query) use ($assignment) {
+            ->whereHas('courseLecturer', function ($query) use ($assignment) {
                 $query->where('course_id', $assignment->course_id);
             })
             ->exists();
@@ -505,7 +505,7 @@ class SubmissionController extends Controller
 
             // Verify the student is enrolled in the course
             $isEnrolled = CourseStudent::where('student_id', $submission->student_id)
-                ->whereHas('courseLecturer', function($query) use ($submission) {
+                ->whereHas('courseLecturer', function ($query) use ($submission) {
                     $query->where('course_id', $submission->assignment->course_id);
                 })
                 ->exists();
@@ -523,5 +523,190 @@ class SubmissionController extends Controller
         }
 
         return response()->download($filePath, $file->original_filename);
+    }
+
+    /**
+     * Delete a submission file
+     * Access control:
+     * - Students can only delete their own files
+     * - Only allowed if submission is not yet graded
+     */
+    public function deleteSubmissionFile($submissionId, $fileId)
+    {
+        $user = Auth::user();
+
+        $submission = Submissions::with(['assignment', 'student'])->findOrFail($submissionId);
+        $file = SubmissionFile::where('id', $fileId)
+            ->where('submission_id', $submissionId)
+            ->firstOrFail();
+
+        // Check permissions
+        if ($user->role === 'student') {
+            // Students can only delete their own files
+            if ($submission->student_id !== $user->id) {
+                abort(403, 'You can only delete your own submission files.');
+            }
+
+            // Verify student is enrolled in the course
+            $courseLecturerIds = CourseStudent::where('student_id', $user->id)
+                ->pluck('course_lecturer_id');
+            $courseIds = CourseLecturer::whereIn('id', $courseLecturerIds)
+                ->pluck('course_id')
+                ->unique();
+            if (!$courseIds->contains($submission->assignment->course_id)) {
+                abort(403, 'You are not enrolled in this course.');
+            }
+
+            // Students can only delete files if submission is not graded
+            if ($submission->status === 'marked' || $submission->score !== null) {
+                abort(403, 'You cannot delete files from a graded submission.');
+            }
+        } elseif ($user->role === 'lecturer') {
+            // Lecturers can delete files for students enrolled in their courses
+            $isAssignedLecturer = CourseLecturer::where('course_id', $submission->assignment->course_id)
+                ->where('lecturer_id', $user->id)
+                ->exists();
+
+            if (!$isAssignedLecturer && $submission->assignment->lecturer_id !== $user->id) {
+                abort(403, 'You are not authorized to delete this file.');
+            }
+        } else {
+            abort(403, 'Unauthorized access.');
+        }
+
+        // Delete physical file
+        $filePath = public_path($file->file_path);
+        if (File::exists($filePath)) {
+            File::delete($filePath);
+        }
+
+        // Delete file record
+        $file->delete();
+
+        // If no files remain and submission exists, update submission status
+        $remainingFiles = SubmissionFile::where('submission_id', $submissionId)->count();
+        if ($remainingFiles === 0 && $submission->status === 'submitted') {
+            $submission->status = 'draft';
+            $submission->save();
+        }
+
+        // If AJAX request, return JSON response
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'File deleted successfully.',
+                'remaining_files' => $remainingFiles
+            ]);
+        }
+
+        return redirect()->route('assignment.submission', ['assignmentId' => $submission->assignment_id])
+            ->with('success', 'File deleted successfully.');
+    }
+
+    /**
+     * Replace/update a submission file
+     * Access control:
+     * - Students can only replace their own files
+     * - Only allowed if submission is not yet graded
+     */
+    public function replaceSubmissionFile(Request $request, $submissionId, $fileId)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:pdf,doc,docx,txt,rtf,odt|max:20480', // 20MB max
+        ]);
+
+        $user = Auth::user();
+
+        $submission = Submissions::with(['assignment', 'student'])->findOrFail($submissionId);
+        $file = SubmissionFile::where('id', $fileId)
+            ->where('submission_id', $submissionId)
+            ->firstOrFail();
+
+        // Check permissions
+        if ($user->role === 'student') {
+            // Students can only replace their own files
+            if ($submission->student_id !== $user->id) {
+                abort(403, 'You can only replace your own submission files.');
+            }
+
+            // Verify student is enrolled in the course
+            $courseLecturerIds = CourseStudent::where('student_id', $user->id)
+                ->pluck('course_lecturer_id');
+            $courseIds = CourseLecturer::whereIn('id', $courseLecturerIds)
+                ->pluck('course_id')
+                ->unique();
+            if (!$courseIds->contains($submission->assignment->course_id)) {
+                abort(403, 'You are not enrolled in this course.');
+            }
+
+            // Students can only replace files if submission is not graded
+            if ($submission->status === 'marked' || $submission->score !== null) {
+                abort(403, 'You cannot replace files in a graded submission.');
+            }
+        } elseif ($user->role === 'lecturer') {
+            // Lecturers can replace files for students enrolled in their courses
+            $isAssignedLecturer = CourseLecturer::where('course_id', $submission->assignment->course_id)
+                ->where('lecturer_id', $user->id)
+                ->exists();
+
+            if (!$isAssignedLecturer && $submission->assignment->lecturer_id !== $user->id) {
+                abort(403, 'You are not authorized to replace this file.');
+            }
+        } else {
+            abort(403, 'Unauthorized access.');
+        }
+
+        // Delete old physical file
+        $oldFilePath = public_path($file->file_path);
+        if (File::exists($oldFilePath)) {
+            File::delete($oldFilePath);
+        }
+
+        // Upload new file
+        $newFile = $request->file('file');
+        $originalName = $newFile->getClientOriginalName();
+        $fileSize = $newFile->getSize();
+        $fileType = $newFile->getMimeType();
+
+        // Handle duplicate filenames
+        $fileName = pathinfo($originalName, PATHINFO_FILENAME);
+        $extension = pathinfo($originalName, PATHINFO_EXTENSION);
+        $uniqueName = $fileName . '_' . time() . '_' . uniqid() . '.' . $extension;
+
+        $publicPath = public_path('submissions/' . $submissionId);
+        if (!File::exists($publicPath)) {
+            File::makeDirectory($publicPath, 0755, true);
+        }
+
+        // Move new file
+        $newFile->move($publicPath, $uniqueName);
+        $relativePath = 'submissions/' . $submissionId . '/' . $uniqueName;
+
+        // Update file record
+        $file->file_path = $relativePath;
+        $file->original_filename = $originalName;
+        $file->file_type = $fileType;
+        $file->file_size = $fileSize;
+        $file->save();
+
+        // Update submission timestamp
+        $submission->submitted_at = now();
+        $submission->save();
+
+        // If AJAX request, return JSON response
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'File replaced successfully.',
+                'file' => [
+                    'id' => $file->id,
+                    'original_filename' => $file->original_filename,
+                    'file_size' => $file->file_size,
+                ]
+            ]);
+        }
+
+        return redirect()->route('assignment.submission', ['assignmentId' => $submission->assignment_id])
+            ->with('success', 'File replaced successfully.');
     }
 }

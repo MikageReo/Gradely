@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -15,11 +14,26 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $this->command->info('Starting database seeding...');
+        $this->command->newLine();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        // Seed in order to maintain foreign key relationships
+        $this->call([
+            UserSeeder::class,
+            CourseSeeder::class,
+            CourseLecturerSeeder::class,
+            CourseStudentSeeder::class,
+            AssignmentSeeder::class,
+            SubmissionSeeder::class,
+            SubmissionCommentSeeder::class,
         ]);
+
+        $this->command->newLine();
+        $this->command->info('Database seeding completed successfully!');
+        $this->command->newLine();
+        $this->command->info('Login Credentials:');
+        $this->command->info('Admin: admin@gradely.com / password123');
+        $this->command->info('Lecturer: ahmad@gradely.com / password123');
+        $this->command->info('Student: ali@gradely.com / password123');
     }
 }

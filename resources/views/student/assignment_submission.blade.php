@@ -591,6 +591,29 @@
             text-decoration: underline;
         }
 
+        .file-edit-btn, .file-delete-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            color: var(--muted);
+        }
+
+        .file-edit-btn:hover {
+            background: #E3F2FD;
+            color: var(--color-primary);
+        }
+
+        .file-delete-btn:hover {
+            background: #FFEBEE;
+            color: #E53935;
+        }
+
         .assignment-files {
             margin-top: 20px;
             padding: 15px;
@@ -827,12 +850,33 @@
                             @endif
                         </div>
                         @foreach ($submission->submissionFiles as $file)
-                            <div class="submitted-file-item">
+                            <div class="submitted-file-item" id="file-item-{{ $file->id }}">
                                 <span>📄</span>
                                 <span>{{ $file->original_filename }}</span>
-                                <a href="{{ route('submission.file.download', ['submissionId' => $submission->id, 'fileId' => $file->id]) }}"
-                                    target="_blank"
-                                    style="margin-left: auto; color: var(--color-primary); text-decoration: none; font-size: 12px;">View/Download</a>
+                                <div style="margin-left: auto; display: flex; gap: 8px; align-items: center;">
+                                    <a href="{{ route('submission.file.download', ['submissionId' => $submission->id, 'fileId' => $file->id]) }}"
+                                        target="_blank"
+                                        style="color: var(--color-primary); text-decoration: none; font-size: 12px; font-weight: 500;">View/Download</a>
+
+                                    @if (Auth::user()->role === 'student' && $submission->student_id === Auth::id() && ($submission->status !== 'marked' && $submission->score === null))
+                                        <button type="button"
+                                            class="file-edit-btn"
+                                            onclick="editFile({{ $file->id }}, '{{ $file->original_filename }}')"
+                                            title="Replace file">
+                                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                                            </svg>
+                                        </button>
+                                        <button type="button"
+                                            class="file-delete-btn"
+                                            onclick="deleteFile({{ $file->id }}, '{{ $file->original_filename }}')"
+                                            title="Delete file">
+                                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                            </svg>
+                                        </button>
+                                    @endif
+                                </div>
                             </div>
                         @endforeach
                     </div>
@@ -953,6 +997,9 @@
                                     </svg>
                                     Choose files to upload
                                 </label>
+                                <div style="margin-top: 8px; font-size: 12px; color: var(--muted); text-align: center;">
+                                    Maximum file size: 20MB per file (PDF, DOC, DOCX, TXT, RTF, ODT)
+                                </div>
                             </div>
                             <div class="file-list" id="fileList"></div>
                             <button type="submit" class="submit-btn" id="submitBtn" disabled>
@@ -1128,8 +1175,33 @@
         if (fileInput) {
             fileInput.addEventListener('change', function(e) {
                 const files = Array.from(e.target.files);
+                const maxSize = 20 * 1024 * 1024; // 20MB in bytes
+                const invalidFiles = [];
+                const validFiles = [];
+
+                // Validate file sizes
+                files.forEach(file => {
+                    if (file.size > maxSize) {
+                        invalidFiles.push(file.name);
+                    } else {
+                        validFiles.push(file);
+                    }
+                });
+
+                // Show error for files that are too large
+                if (invalidFiles.length > 0) {
+                    alert(`The following files exceed the 20MB limit:\n${invalidFiles.join('\n')}\n\nPlease select smaller files.`);
+                }
+
+                // Update selectedFiles with valid files
                 selectedFiles.length = 0;
-                selectedFiles.push(...files);
+                selectedFiles.push(...validFiles);
+
+                // Update the file input with valid files only
+                const dt = new DataTransfer();
+                selectedFiles.forEach(file => dt.items.add(file));
+                fileInput.files = dt.files;
+
                 updateFileList();
             });
 
@@ -1142,8 +1214,12 @@
                     selectedFiles.forEach((file, index) => {
                         const fileItem = document.createElement('div');
                         fileItem.className = 'file-item';
+                        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
                         fileItem.innerHTML = `
-                            <span class="file-name">${file.name}</span>
+                            <div style="flex: 1;">
+                                <span class="file-name">${file.name}</span>
+                                <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">${fileSizeMB} MB</div>
+                            </div>
                             <button type="button" class="file-remove" onclick="removeFile(${index})">Remove</button>
                         `;
                         fileList.appendChild(fileItem);
@@ -1199,6 +1275,129 @@
                 });
             });
         });
+
+        // Delete submission file
+        function deleteFile(fileId, fileName) {
+            if (!confirm(`Are you sure you want to delete "${fileName}"? This action cannot be undone.`)) {
+                return;
+            }
+
+            const submissionId = {{ $submission->id ?? 'null' }};
+            if (!submissionId) return;
+
+            fetch(`/submission/${submissionId}/file/${fileId}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Remove file item from DOM
+                    const fileItem = document.getElementById(`file-item-${fileId}`);
+                    if (fileItem) {
+                        fileItem.style.transition = 'opacity 0.3s';
+                        fileItem.style.opacity = '0';
+                        setTimeout(() => {
+                            fileItem.remove();
+
+                            // Check if no files remain
+                            const remainingFiles = document.querySelectorAll('.submitted-file-item');
+                            if (remainingFiles.length === 0) {
+                                // Reload page to show upload form
+                                location.reload();
+                            }
+                        }, 300);
+                    }
+                    showSuccessMessage(data.message || 'File deleted successfully.');
+                } else {
+                    showErrorMessage(data.message || 'Failed to delete file.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showErrorMessage('An error occurred while deleting the file.');
+            });
+        }
+
+        // Edit/Replace submission file
+        window.editFile = function(fileId, fileName) {
+            // Create file input
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.pdf,.doc,.docx,.txt,.rtf,.odt';
+            input.style.display = 'none';
+
+            // Add change event listener
+            input.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                // Validate file size (20MB)
+                const maxSize = 20 * 1024 * 1024;
+                if (file.size > maxSize) {
+                    alert(`File size exceeds 20MB limit. Please select a smaller file.`);
+                    return;
+                }
+
+                // Validate file type
+                const allowedTypes = ['application/pdf', 'application/msword',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'text/plain', 'application/rtf', 'application/vnd.oasis.opendocument.text'];
+                if (!allowedTypes.includes(file.type)) {
+                    alert('Invalid file type. Please select a PDF, DOC, DOCX, TXT, RTF, or ODT file.');
+                    return;
+                }
+
+                // Show loading state
+                const fileItem = document.getElementById(`file-item-${fileId}`);
+                const originalContent = fileItem.innerHTML;
+                fileItem.innerHTML = '<span>⏳ Uploading...</span>';
+
+                // Upload file
+                const submissionId = {{ $submission->id ?? 'null' }};
+                if (!submissionId) return;
+
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+
+                fetch(`/submission/${submissionId}/file/${fileId}/replace`, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showSuccessMessage(data.message || 'File replaced successfully.');
+                        // Reload page to show updated file
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1000);
+                    } else {
+                        fileItem.innerHTML = originalContent;
+                        showErrorMessage(data.message || 'Failed to replace file.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    fileItem.innerHTML = originalContent;
+                    showErrorMessage('An error occurred while replacing the file.');
+                });
+            });
+
+            // Trigger file input
+            document.body.appendChild(input);
+            input.click();
+            document.body.removeChild(input);
+        }
 
         // Helper function to format dates in Malaysia timezone
         function formatDateMalaysia(dateString) {
