@@ -36,10 +36,8 @@
             color: var(--white);
             padding: 20px;
             box-shadow: 2px 0 6px rgba(0,0,0,0.1);
-            position: sticky;
-            top: 0;
-            height: 100vh;
-            overflow-y: auto;
+            align-self: stretch;
+            min-height: 100vh;
         }
         .sidebar h2 {
             font-size: 18px;
