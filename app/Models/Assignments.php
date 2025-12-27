@@ -7,12 +7,14 @@ use App\Models\Courses;
 use App\Models\User;
 use App\Models\Submissions;
 use App\Models\AssignmentFile;
+use App\Models\CourseLecturer;
 
 class Assignments extends Model
 {
     protected $fillable = [
         'course_id',
         'lecturer_id',
+        'course_lecturer_id',
         'title',
         'description',
         'attachment',
@@ -55,5 +57,13 @@ class Assignments extends Model
     public function assignmentFiles()
     {
         return $this->hasMany(AssignmentFile::class, 'assignment_id');
+    }
+
+    /**
+     * Get the course lecturer (section) that this assignment belongs to
+     */
+    public function courseLecturer()
+    {
+        return $this->belongsTo(CourseLecturer::class, 'course_lecturer_id');
     }
 }

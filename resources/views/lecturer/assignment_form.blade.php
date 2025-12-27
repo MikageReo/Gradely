@@ -355,6 +355,12 @@
 
                 <div>
                     <label for="files">Attachments</label>
+                    @error('files')
+                        <div style="color: #dc2626; font-size: 13px; margin-bottom: 6px;">{{ $message }}</div>
+                    @enderror
+                    @error('files.*')
+                        <div style="color: #dc2626; font-size: 13px; margin-bottom: 6px;">{{ $message }}</div>
+                    @enderror
                     <div class="upload-section" id="uploadSection">
                         <div class="file-input-wrapper">
                             <input type="file" name="files[]" id="fileInput" class="file-input" multiple accept=".pdf,.doc,.docx,.txt">
@@ -378,8 +384,8 @@
                                         <a href="{{ url('/' . $file->file_path) }}" target="_blank">View/Download</a>
                                     </div>
                                 @endforeach
-                            </div>
-                        @endif
+                        </div>
+                    @endif
                     </div>
                 </div>
             </div>

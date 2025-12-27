@@ -20,16 +20,22 @@ class StudentDashboardController extends Controller
         if ($user->role !== 'student') {
             abort(403, 'Unauthorized');
         }
-        // Get course IDs through course_lecturer -> course_student
-        $courseIds = Courses::whereHas('courseLecturers.students', function($query) use ($user) {
-            $query->where('student_id', $user->id);
-        })->pluck('id');
+        // Get course_lecturer_ids (sections) where student is enrolled
+        $courseLecturerIds = CourseStudent::where('student_id', $user->id)
+            ->pluck('course_lecturer_id');
+        
+        // Get course IDs through course_lecturer
+        $courseIds = CourseLecturer::whereIn('id', $courseLecturerIds)
+            ->pluck('course_id')
+            ->unique();
 
-        if ($courseIds->isEmpty()) {
+        if ($courseIds->isEmpty() || $courseLecturerIds->isEmpty()) {
             $pendingAssignments = collect();
         } else {
             $pendingAssignments = Assignments::with('course')
                 ->whereIn('course_id', $courseIds)
+                ->whereIn('course_lecturer_id', $courseLecturerIds)
+                ->where('visibility', 'published')
                 ->whereDoesntHave('submissions', function ($query) use ($user) {
                     $query->where('student_id', $user->id);
                 })
@@ -71,10 +77,10 @@ class StudentDashboardController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        // Verify student is enrolled in this course
-        $courseLecturerIds = \App\Models\CourseStudent::where('student_id', $user->id)
+        // Verify student is enrolled in this course and get their sections
+        $courseLecturerIds = CourseStudent::where('student_id', $user->id)
             ->pluck('course_lecturer_id');
-        $enrolledCourseIds = \App\Models\CourseLecturer::whereIn('id', $courseLecturerIds)
+        $enrolledCourseIds = CourseLecturer::whereIn('id', $courseLecturerIds)
             ->pluck('course_id')
             ->unique();
         
@@ -82,26 +88,33 @@ class StudentDashboardController extends Controller
             abort(403, 'You are not enrolled in this course.');
         }
         
+        // Get course_lecturer_ids for this specific course (student's sections)
+        $studentSectionIds = CourseLecturer::whereIn('id', $courseLecturerIds)
+            ->where('course_id', $courseId)
+            ->pluck('id');
+        
         $course = Courses::where('id', $courseId)
-            ->with(['courseLecturers.lecturer', 'assignments' => function($query) {
-                $query->where('visibility', 'published')
-                    ->orderBy('due_date', 'desc');
-            }])
+            ->with(['courseLecturers.lecturer'])
             ->firstOrFail();
 
-        // Get assignments with submission status
-        $assignments = $course->assignments->map(function($assignment) use ($user) {
-            $submission = $assignment->submissions()
-                ->where('student_id', $user->id)
-                ->first();
-            
-            $assignment->has_submission = $submission !== null;
-            $assignment->submission_status = $submission ? $submission->status : null;
-            $assignment->score = $submission ? $submission->score : null;
-            $assignment->grade = $submission ? $submission->grade : null;
-            
-            return $assignment;
-        });
+        // Get assignments from student's sections only
+        $assignments = Assignments::where('course_id', $courseId)
+            ->whereIn('course_lecturer_id', $studentSectionIds)
+            ->where('visibility', 'published')
+            ->orderBy('due_date', 'desc')
+            ->get()
+            ->map(function($assignment) use ($user) {
+                $submission = $assignment->submissions()
+                    ->where('student_id', $user->id)
+                    ->first();
+                
+                $assignment->has_submission = $submission !== null;
+                $assignment->submission_status = $submission ? $submission->status : null;
+                $assignment->score = $submission ? $submission->score : null;
+                $assignment->grade = $submission ? $submission->grade : null;
+                
+                return $assignment;
+            });
 
         // Calculate course performance
         $performance = $this->calculateCoursePerformance($course, $user->id);
@@ -122,8 +135,18 @@ class StudentDashboardController extends Controller
      */
     private function calculateCoursePerformance($course, $studentId)
     {
-        // Get all assignments for this course
-        $assignments = $course->assignments()->where('visibility', 'published')->get();
+        // Get course_lecturer_ids (sections) where student is enrolled in this course
+        $courseLecturerIds = CourseStudent::where('student_id', $studentId)
+            ->pluck('course_lecturer_id');
+        $studentSectionIds = CourseLecturer::whereIn('id', $courseLecturerIds)
+            ->where('course_id', $course->id)
+            ->pluck('id');
+        
+        // Get assignments from student's sections only
+        $assignments = Assignments::where('course_id', $course->id)
+            ->whereIn('course_lecturer_id', $studentSectionIds)
+            ->where('visibility', 'published')
+            ->get();
         
         // Get all submissions for this student in this course
         $assignmentIds = $assignments->pluck('id');

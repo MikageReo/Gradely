@@ -9,6 +9,7 @@ use App\Models\Submissions;
 use App\Models\CourseLecturer;
 use App\Models\CourseStudent;
 use App\Models\AssignmentFile;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\File;
@@ -82,8 +83,15 @@ class LecturerController extends Controller
                 ->with(['courseLecturers.students.student'])
                 ->firstOrFail();
 
+            // Get all course_lecturer_ids (sections) for this lecturer in this course
+            $lecturerSectionIds = CourseLecturer::where('course_id', $courseId)
+                ->where('lecturer_id', $user->id)
+                ->pluck('id');
+
             // Build query with search and filter capabilities
-            $query = Assignments::where('course_id', $courseId);
+            // Only show assignments from the lecturer's sections
+            $query = Assignments::where('course_id', $courseId)
+                ->whereIn('course_lecturer_id', $lecturerSectionIds);
             
             // Search filter
             if ($request->has('search') && $request->search) {
@@ -128,10 +136,17 @@ class LecturerController extends Controller
                 $completed = 0;
             }
 
-            // Calculate total students more efficiently
-            $totalStudents = CourseStudent::whereHas('courseLecturer', function($query) use ($courseId) {
-                $query->where('course_id', $courseId);
-            })->distinct('student_id')->count();
+            // Calculate total students from lecturer's sections only
+            $totalStudents = CourseStudent::whereIn('course_lecturer_id', $lecturerSectionIds)
+                ->distinct('student_id')
+                ->count();
+
+            // Get students enrolled in lecturer's sections only
+            $enrolledStudents = User::whereHas('studentCourseSections', function($query) use ($lecturerSectionIds) {
+                $query->whereIn('course_lecturer_id', $lecturerSectionIds);
+            })
+            ->orderBy('name')
+            ->get();
 
             return view('lecturer.course_detail', [
                 'course' => $course,
@@ -140,6 +155,7 @@ class LecturerController extends Controller
                 'totalSubmissions' => $totalSubmissions,
                 'pendingGrading' => $pendingGrading,
                 'completed' => $completed,
+                'enrolledStudents' => $enrolledStudents,
             ]);
         } catch (\Exception $e) {
             Log::error('Error loading course detail', [
@@ -195,9 +211,15 @@ class LecturerController extends Controller
             })
             ->firstOrFail();
 
+        // Get all course_lecturer_ids (sections) for this lecturer in this course
+        $lecturerSectionIds = CourseLecturer::where('course_id', $courseId)
+            ->where('lecturer_id', $user->id)
+            ->pluck('id');
+
         $assignment = Assignments::where('id', $assignmentId)
             ->where('course_id', $courseId)
             ->where('lecturer_id', $user->id)
+            ->whereIn('course_lecturer_id', $lecturerSectionIds)
             ->with('assignmentFiles')
             ->firstOrFail();
 
@@ -220,6 +242,27 @@ class LecturerController extends Controller
         }
 
         try {
+            // Check for PHP upload errors before validation
+            if ($request->hasFile('files')) {
+                foreach ($request->file('files') as $key => $file) {
+                    if (!$file->isValid()) {
+                        $errorCode = $file->getError();
+                        if ($errorCode === UPLOAD_ERR_INI_SIZE || $errorCode === UPLOAD_ERR_FORM_SIZE) {
+                            return back()->withErrors(['files' => 'File size exceeds the maximum allowed size. Each file cannot exceed 10MB.'])->withInput();
+                        }
+                        return back()->withErrors(['files' => 'File upload failed. Please try again.'])->withInput();
+                    }
+                }
+                
+                // Manual file size check (10MB = 10485760 bytes)
+                foreach ($request->file('files') as $key => $file) {
+                    $fileSize = $file->getSize();
+                    if ($fileSize > 10485760) { // 10MB in bytes
+                        return back()->withErrors(['files.' . $key => 'Each file size cannot exceed 10MB.'])->withInput();
+                    }
+                }
+            }
+            
             DB::beginTransaction();
             
             // Verify course belongs to lecturer through course_lecturer
@@ -227,6 +270,12 @@ class LecturerController extends Controller
                 ->whereHas('courseLecturers', function($query) use ($user) {
                     $query->where('lecturer_id', $user->id);
                 })
+                ->firstOrFail();
+
+            // Get the lecturer's course_lecturer_id (section) for this course
+            // If lecturer teaches multiple sections, use the first one
+            $courseLecturer = CourseLecturer::where('course_id', $courseId)
+                ->where('lecturer_id', $user->id)
                 ->firstOrFail();
 
             $data = $request->validate([
@@ -243,11 +292,14 @@ class LecturerController extends Controller
                 'description.max' => 'Description cannot exceed 5000 characters.',
                 'due_date.after' => 'Due date must be in the future.',
                 'files.*.max' => 'Each file size cannot exceed 10MB.',
+                'files.*.file' => 'Invalid file type. Only PDF, DOC, DOCX, and TXT files are allowed.',
+                'files.*.mimes' => 'Invalid file type. Only PDF, DOC, DOCX, and TXT files are allowed.',
             ]);
 
             $assignment = new Assignments();
             $assignment->course_id = $courseId;
             $assignment->lecturer_id = $user->id;
+            $assignment->course_lecturer_id = $courseLecturer->id;
             $assignment->title = $data['title'];
             $assignment->description = $data['description'] ?? null;
             $assignment->due_date = $data['due_date'] ?? null;
@@ -348,6 +400,27 @@ class LecturerController extends Controller
         }
 
         try {
+            // Check for PHP upload errors before validation
+            if ($request->hasFile('files')) {
+                foreach ($request->file('files') as $key => $file) {
+                    if (!$file->isValid()) {
+                        $errorCode = $file->getError();
+                        if ($errorCode === UPLOAD_ERR_INI_SIZE || $errorCode === UPLOAD_ERR_FORM_SIZE) {
+                            return back()->withErrors(['files' => 'File size exceeds the maximum allowed size. Each file cannot exceed 10MB.'])->withInput();
+                        }
+                        return back()->withErrors(['files' => 'File upload failed. Please try again.'])->withInput();
+                    }
+                }
+                
+                // Manual file size check (10MB = 10485760 bytes)
+                foreach ($request->file('files') as $key => $file) {
+                    $fileSize = $file->getSize();
+                    if ($fileSize > 10485760) { // 10MB in bytes
+                        return back()->withErrors(['files.' . $key => 'Each file size cannot exceed 10MB.'])->withInput();
+                    }
+                }
+            }
+            
             DB::beginTransaction();
             
             // Verify course belongs to lecturer through course_lecturer
@@ -357,9 +430,15 @@ class LecturerController extends Controller
                 })
                 ->firstOrFail();
 
+            // Get all course_lecturer_ids (sections) for this lecturer in this course
+            $lecturerSectionIds = CourseLecturer::where('course_id', $courseId)
+                ->where('lecturer_id', $user->id)
+                ->pluck('id');
+
             $assignment = Assignments::where('id', $assignmentId)
                 ->where('course_id', $courseId)
                 ->where('lecturer_id', $user->id)
+                ->whereIn('course_lecturer_id', $lecturerSectionIds)
                 ->firstOrFail();
 
             $data = $request->validate([
@@ -375,6 +454,8 @@ class LecturerController extends Controller
                 'title.max' => 'Title cannot exceed 255 characters.',
                 'description.max' => 'Description cannot exceed 5000 characters.',
                 'files.*.max' => 'Each file size cannot exceed 10MB.',
+                'files.*.file' => 'Invalid file type. Only PDF, DOC, DOCX, and TXT files are allowed.',
+                'files.*.mimes' => 'Invalid file type. Only PDF, DOC, DOCX, and TXT files are allowed.',
             ]);
 
             $assignment->title = $data['title'];
@@ -499,9 +580,15 @@ class LecturerController extends Controller
                 })
                 ->firstOrFail();
 
+            // Get all course_lecturer_ids (sections) for this lecturer in this course
+            $lecturerSectionIds = CourseLecturer::where('course_id', $courseId)
+                ->where('lecturer_id', $user->id)
+                ->pluck('id');
+
             $assignment = Assignments::where('id', $assignmentId)
                 ->where('course_id', $courseId)
                 ->where('lecturer_id', $user->id)
+                ->whereIn('course_lecturer_id', $lecturerSectionIds)
                 ->firstOrFail();
 
             // Delete all assignment files
@@ -565,30 +652,23 @@ class LecturerController extends Controller
             })
             ->firstOrFail();
 
+        // Get all course_lecturer_ids (sections) for this lecturer in this course
+        $lecturerSectionIds = CourseLecturer::where('course_id', $courseId)
+            ->where('lecturer_id', $user->id)
+            ->pluck('id');
+
         $assignment = Assignments::where('id', $assignmentId)
             ->where('course_id', $courseId)
+            ->whereIn('course_lecturer_id', $lecturerSectionIds)
             ->with('course')
             ->firstOrFail();
 
-        // Verify lecturer is assigned to this course or is the assignment creator
-        $isAssignedLecturer = CourseLecturer::where('course_id', $courseId)
-            ->where('lecturer_id', $user->id)
-            ->exists();
-        
-        if (!$isAssignedLecturer && $assignment->lecturer_id !== $user->id) {
-            abort(403, 'You are not authorized to view submissions for this assignment.');
-        }
-
-        // Only show submissions from students enrolled in this course
-        // Get all course_lecturer IDs for this course
-        $courseLecturerIds = CourseLecturer::where('course_id', $courseId)->pluck('id');
-        
-        // Get all student IDs enrolled in this course
-        $enrolledStudentIds = CourseStudent::whereIn('course_lecturer_id', $courseLecturerIds)
+        // Only show submissions from students enrolled in the lecturer's sections
+        $enrolledStudentIds = CourseStudent::whereIn('course_lecturer_id', $lecturerSectionIds)
             ->pluck('student_id')
             ->unique();
         
-        // Get submissions only from enrolled students
+        // Get submissions only from students in the lecturer's sections
         $submissions = Submissions::where('assignment_id', $assignmentId)
             ->whereIn('student_id', $enrolledStudentIds)
             ->with(['student', 'submissionFiles'])

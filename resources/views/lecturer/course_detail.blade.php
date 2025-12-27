@@ -791,9 +791,9 @@
 
             <div class="section">
                 <h2 class="section-title">Enrolled Students</h2>
-                @if($course->students->count() > 0)
+                @if(isset($enrolledStudents) && $enrolledStudents->count() > 0)
                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
-                        @foreach($course->students as $student)
+                        @foreach($enrolledStudents as $student)
                             <div style="padding: 12px; background: #f8f9fa; border-radius: 6px;">
                                 <div style="font-weight: 500; color: #222;">{{ $student->name }}</div>
                                 <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">{{ $student->email }}</div>
@@ -802,7 +802,7 @@
                     </div>
                 @else
                     <div style="text-align: center; padding: 40px 20px; color: var(--muted);">
-                        <p>No students enrolled in this course yet.</p>
+                        <p>No students enrolled in your section(s) yet.</p>
                     </div>
                 @endif
             </div>
