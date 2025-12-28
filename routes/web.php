@@ -190,6 +190,12 @@ Route::middleware('auth')->group(function () {
         ->name('submission.file.delete');
     Route::post('/submission/{submissionId}/file/{fileId}/replace', [SubmissionController::class, 'replaceSubmissionFile'])
         ->name('submission.file.replace');
+
+    // Feedback File Management Routes
+    Route::get('/submission/{submissionId}/feedback/{fileId}/download', [SubmissionController::class, 'downloadFeedbackFile'])
+        ->name('feedback.file.download');
+    Route::delete('/submission/{submissionId}/feedback/{fileId}', [SubmissionController::class, 'deleteFeedbackFile'])
+        ->name('feedback.file.delete');
 });
 
 // Add POST handler for login form

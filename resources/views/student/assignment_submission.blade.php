@@ -887,7 +887,7 @@
                         style="margin-top: 30px; padding: 20px; background: #FFF9E6; border-radius: 8px; border: 2px solid #FFD54F;">
                         <h3 style="margin-bottom: 15px; color: #F57C00; font-size: 18px;">📝 Grade Submission</h3>
                         <form id="gradeForm" action="{{ route('assignment.submission.grade', $assignment->id) }}"
-                            method="POST">
+                            method="POST" enctype="multipart/form-data">
                             @csrf
                             <input type="hidden" name="submission_id" value="{{ $submission->id }}">
                             <input type="hidden" name="student_id" value="{{ $submission->student_id }}">
@@ -905,6 +905,53 @@
                                 <textarea id="feedbackInput" name="lecturer_feedback" rows="4"
                                     style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: var(--font);">{{ $submission->lecturer_feedback ?? '' }}</textarea>
                             </div>
+                            <div style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 10px; font-weight: 500; color: #222; font-size: 14px;">Upload Feedback Files</label>
+                                <div class="upload-section" id="feedbackUploadSection">
+                                    <div class="file-input-wrapper">
+                                        <input type="file" name="feedback_files[]" id="feedbackFilesInput" class="file-input" multiple
+                                            accept=".pdf,.doc,.docx,.txt,.rtf,.odt,.jpg,.jpeg,.png,.gif">
+                                        <label for="feedbackFilesInput" class="file-input-label">
+                                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                                <path
+                                                    d="M5.5 13a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 13H11V9.413l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13H5.5z" />
+                                                <path d="M9 13h2v5a1 1 0 11-2 0v-5z" />
+                                            </svg>
+                                            Choose feedback files to upload
+                                        </label>
+                                        <div style="margin-top: 8px; font-size: 12px; color: var(--muted); text-align: center;">
+                                            Maximum file size: 20MB per file (PDF, DOC, DOCX, TXT, RTF, ODT, JPG, JPEG, PNG, GIF)
+                                        </div>
+                                    </div>
+                                    <div class="file-list" id="feedbackFileList"></div>
+                                </div>
+                            </div>
+                            @if($submission->feedbackFiles && $submission->feedbackFiles->count() > 0)
+                                <div style="margin-bottom: 15px; padding: 15px; background: #f5f5f5; border-radius: 8px; border: 1px solid #e0e0e0;">
+                                    <strong style="display: block; margin-bottom: 10px; color: #222; font-size: 14px;">Previously Uploaded Feedback Files:</strong>
+                                    <div id="existingFeedbackFilesList">
+                                        @foreach($submission->feedbackFiles as $file)
+                                            <div class="file-item" style="background: white;">
+                                                <div style="flex: 1;">
+                                                    <a href="{{ route('feedback.file.download', ['submissionId' => $submission->id, 'fileId' => $file->id]) }}" 
+                                                       target="_blank"
+                                                       class="file-name" style="color: var(--color-primary); text-decoration: none;">
+                                                        📎 {{ $file->original_filename }}
+                                                    </a>
+                                                    <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">
+                                                        {{ number_format($file->file_size / 1024, 2) }} KB
+                                                    </div>
+                                                </div>
+                                                <button type="button" class="file-remove delete-feedback-file" 
+                                                        data-file-id="{{ $file->id }}" 
+                                                        data-submission-id="{{ $submission->id }}">
+                                                    Remove
+                                                </button>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
                             <button type="submit"
                                 style="padding: 10px 20px; background: #FF9800; color: white; border: none; border-radius: 6px; font-weight: 500; cursor: pointer;">Save
                                 Grade & Feedback</button>
@@ -973,10 +1020,46 @@
                             </div>
                         @endif
                         <div id="feedbackDisplay"
-                            style="margin-top: 20px; padding: 15px; background: white; border-radius: 6px; border-left: 4px solid var(--color-primary); {{ !$submission->lecturer_feedback ? 'display: none;' : '' }}">
-                            <div style="font-weight: 600; margin-bottom: 8px; color: #222;">Lecturer Feedback:</div>
-                            <div id="feedbackText" style="color: #333; line-height: 1.6; white-space: pre-wrap;">
-                                {{ $submission->lecturer_feedback ?? '' }}</div>
+                            style="margin-top: 20px; padding: 15px; background: white; border-radius: 6px; border-left: 4px solid var(--color-primary); {{ !$submission->lecturer_feedback && (!$submission->feedbackFiles || $submission->feedbackFiles->count() == 0) ? 'display: none;' : '' }}">
+                            <div style="font-weight: 600; margin-bottom: 8px; color: #222; font-size: 16px;">💬 Lecturer Feedback:</div>
+                            @if($submission->lecturer_feedback)
+                                <div id="feedbackText" style="color: #333; line-height: 1.6; white-space: pre-wrap; margin-bottom: {{ ($submission->feedbackFiles && $submission->feedbackFiles->count() > 0) ? '15px' : '0' }};">
+                                    {{ $submission->lecturer_feedback }}
+                                </div>
+                            @else
+                                <div id="feedbackText" style="color: #999; font-style: italic; margin-bottom: {{ ($submission->feedbackFiles && $submission->feedbackFiles->count() > 0) ? '15px' : '0' }};">
+                                    No text feedback provided.
+                                </div>
+                            @endif
+                            @if($submission->feedbackFiles && $submission->feedbackFiles->count() > 0)
+                                <div id="feedbackFilesDisplay" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+                                    <strong style="display: block; margin-bottom: 10px; color: #222; font-size: 15px;">📁 Feedback Files:</strong>
+                                    <div id="feedbackFilesList">
+                                        @foreach($submission->feedbackFiles as $file)
+                                            <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #f5f5f5; border-radius: 4px; margin-bottom: 8px; border: 1px solid #e0e0e0;">
+                                                <div style="display: flex; align-items: center; flex: 1; gap: 10px;">
+                                                    <span style="font-size: 20px;">📎</span>
+                                                    <div style="flex: 1;">
+                                                        <a href="{{ route('feedback.file.download', ['submissionId' => $submission->id, 'fileId' => $file->id]) }}" 
+                                                           target="_blank"
+                                                           style="color: var(--color-primary); text-decoration: none; font-weight: 500; display: block; margin-bottom: 2px;">
+                                                            {{ $file->original_filename }}
+                                                        </a>
+                                                        <small style="color: var(--muted); font-size: 12px;">
+                                                            {{ number_format($file->file_size / 1024, 2) }} KB
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                                <a href="{{ route('feedback.file.download', ['submissionId' => $submission->id, 'fileId' => $file->id]) }}" 
+                                                   target="_blank"
+                                                   style="padding: 6px 12px; background: var(--color-primary); color: white; text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: 500; white-space: nowrap;">
+                                                    View/Download
+                                                </a>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 @endif
@@ -1509,6 +1592,11 @@
 
             // AJAX handler for grade form
             const gradeForm = document.getElementById('gradeForm');
+            @if(isset($submission))
+            const submissionId = {{ $submission->id }};
+            @else
+            const submissionId = null;
+            @endif
 
             if (gradeForm) {
                 gradeForm.addEventListener('submit', function(e) {
@@ -1570,7 +1658,70 @@
                                         .lecturer_feedback;
                                     if (feedbackDisplay) feedbackDisplay.style.display = 'block';
                                 } else {
-                                    if (feedbackDisplay) feedbackDisplay.style.display = 'none';
+                                    if (feedbackText) {
+                                        feedbackText.innerHTML = '<span style="color: #999; font-style: italic;">No text feedback provided.</span>';
+                                    }
+                                }
+
+                                // Update feedback files display
+                                const feedbackFilesDisplay = document.getElementById('feedbackFilesDisplay');
+                                const feedbackFilesList = document.getElementById('feedbackFilesList');
+                                
+                                if (data.submission.feedback_files && data.submission.feedback_files.length > 0) {
+                                    if (!feedbackFilesDisplay) {
+                                        // Create feedback files display section if it doesn't exist
+                                        const feedbackTextDiv = document.getElementById('feedbackText');
+                                        if (feedbackTextDiv && feedbackDisplay) {
+                                            const filesDiv = document.createElement('div');
+                                            filesDiv.id = 'feedbackFilesDisplay';
+                                            filesDiv.style.cssText = 'margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;';
+                                            filesDiv.innerHTML = '<strong style="display: block; margin-bottom: 10px; color: #222; font-size: 15px;">📁 Feedback Files:</strong><div id="feedbackFilesList"></div>';
+                                            feedbackDisplay.appendChild(filesDiv);
+                                        }
+                                    }
+                                    
+                                    const filesList = document.getElementById('feedbackFilesList');
+                                    if (filesList && submissionId) {
+                                        filesList.innerHTML = data.submission.feedback_files.map(file => {
+                                            const fileSizeKB = (file.file_size / 1024).toFixed(2);
+                                            return `<div style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #f5f5f5; border-radius: 4px; margin-bottom: 8px; border: 1px solid #e0e0e0;">
+                                                <div style="display: flex; align-items: center; flex: 1; gap: 10px;">
+                                                    <span style="font-size: 20px;">📎</span>
+                                                    <div style="flex: 1;">
+                                                        <a href="/submission/${submissionId}/feedback/${file.id}/download" 
+                                                           target="_blank"
+                                                           style="color: var(--color-primary); text-decoration: none; font-weight: 500; display: block; margin-bottom: 2px;">
+                                                            ${file.original_filename}
+                                                        </a>
+                                                        <small style="color: var(--muted); font-size: 12px;">
+                                                            ${fileSizeKB} KB
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                                <a href="/submission/${submissionId}/feedback/${file.id}/download" 
+                                                   target="_blank"
+                                                   style="padding: 6px 12px; background: var(--color-primary); color: white; text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: 500; white-space: nowrap;">
+                                                    View/Download
+                                                </a>
+                                            </div>`;
+                                        }).join('');
+                                    }
+                                    
+                                    if (feedbackDisplay) feedbackDisplay.style.display = 'block';
+                                } else {
+                                    if (feedbackFilesDisplay) {
+                                        feedbackFilesDisplay.remove();
+                                    }
+                                    if (!data.submission.lecturer_feedback && feedbackDisplay) {
+                                        feedbackDisplay.style.display = 'none';
+                                    }
+                                }
+
+                                // Reload page to show newly uploaded files (for lecturer view)
+                                if (window.location.href.includes('student_id')) {
+                                    setTimeout(() => {
+                                        window.location.reload();
+                                    }, 1000);
                                 }
 
                                 // Show success message
@@ -1592,6 +1743,139 @@
                         });
                 });
             }
+
+            // Feedback file upload handling (same as assignment upload)
+            const feedbackFileInput = document.getElementById('feedbackFilesInput');
+            const feedbackFileList = document.getElementById('feedbackFileList');
+            const feedbackUploadSection = document.getElementById('feedbackUploadSection');
+            const selectedFeedbackFiles = [];
+
+            if (feedbackFileInput) {
+                feedbackFileInput.addEventListener('change', function(e) {
+                    const files = Array.from(e.target.files);
+                    const maxSize = 20 * 1024 * 1024; // 20MB in bytes
+                    const invalidFiles = [];
+                    const validFiles = [];
+
+                    // Validate file sizes
+                    files.forEach(file => {
+                        if (file.size > maxSize) {
+                            invalidFiles.push(file.name);
+                        } else {
+                            validFiles.push(file);
+                        }
+                    });
+
+                    // Show error for files that are too large
+                    if (invalidFiles.length > 0) {
+                        alert(`The following files exceed the 20MB limit:\n${invalidFiles.join('\n')}\n\nPlease select smaller files.`);
+                    }
+
+                    // Update selectedFeedbackFiles with valid files
+                    selectedFeedbackFiles.length = 0;
+                    selectedFeedbackFiles.push(...validFiles);
+
+                    // Update the file input with valid files only
+                    const dt = new DataTransfer();
+                    selectedFeedbackFiles.forEach(file => dt.items.add(file));
+                    feedbackFileInput.files = dt.files;
+
+                    updateFeedbackFileList();
+                });
+
+                function updateFeedbackFileList() {
+                    feedbackFileList.innerHTML = '';
+                    if (selectedFeedbackFiles.length > 0) {
+                        feedbackUploadSection.classList.add('has-files');
+
+                        selectedFeedbackFiles.forEach((file, index) => {
+                            const fileItem = document.createElement('div');
+                            fileItem.className = 'file-item';
+                            const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                            fileItem.innerHTML = `
+                                <div style="flex: 1;">
+                                    <span class="file-name">${file.name}</span>
+                                    <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">${fileSizeMB} MB</div>
+                                </div>
+                                <button type="button" class="file-remove" onclick="removeFeedbackFile(${index})">Remove</button>
+                            `;
+                            feedbackFileList.appendChild(fileItem);
+                        });
+                    } else {
+                        feedbackUploadSection.classList.remove('has-files');
+                    }
+                }
+
+                window.removeFeedbackFile = function(index) {
+                    selectedFeedbackFiles.splice(index, 1);
+                    updateFeedbackFileList();
+
+                    // Update the file input
+                    const dt = new DataTransfer();
+                    selectedFeedbackFiles.forEach(file => dt.items.add(file));
+                    feedbackFileInput.files = dt.files;
+                };
+            }
+
+            // Handle feedback file deletion
+            document.addEventListener('click', function(e) {
+                if (e.target && e.target.classList.contains('delete-feedback-file')) {
+                    e.preventDefault();
+                    
+                    const button = e.target;
+                    const fileId = button.getAttribute('data-file-id');
+                    const submissionId = button.getAttribute('data-submission-id');
+                    
+                    if (!confirm('Are you sure you want to delete this feedback file?')) {
+                        return;
+                    }
+                    
+                    button.disabled = true;
+                    button.textContent = 'Deleting...';
+                    
+                    fetch(`/submission/${submissionId}/feedback/${fileId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(err => Promise.reject(err));
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            // Remove the file element from the DOM
+                            const fileElement = button.closest('div');
+                            if (fileElement) {
+                                fileElement.remove();
+                            }
+                            
+                            // If no files remain, hide the files list container
+                            const filesList = document.getElementById('feedbackFilesList');
+                            if (filesList && filesList.children.length === 0) {
+                                const filesDisplay = document.getElementById('feedbackFilesDisplay');
+                                if (filesDisplay) {
+                                    filesDisplay.remove();
+                                }
+                            }
+                            
+                            showSuccessMessage(data.message || 'Feedback file deleted successfully.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        const errorMessage = error.message || 'An error occurred while deleting the file.';
+                        alert(errorMessage);
+                        button.disabled = false;
+                        button.textContent = 'Delete';
+                    });
+                }
+            });
 
             // Helper function to show success messages
             function showSuccessMessage(message) {

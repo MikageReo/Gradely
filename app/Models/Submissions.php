@@ -7,6 +7,7 @@ use App\Models\Assignments;
 use App\Models\User;
 use App\Models\SubmissionComments;
 use App\Models\SubmissionFile;
+use App\Models\FeedbackFile;
 
 class Submissions extends Model
 {
@@ -58,5 +59,13 @@ class Submissions extends Model
     public function submissionFiles()
     {
         return $this->hasMany(SubmissionFile::class, 'submission_id');
+    }
+
+    /**
+     * Get all feedback files for this submission
+     */
+    public function feedbackFiles()
+    {
+        return $this->hasMany(FeedbackFile::class, 'submission_id');
     }
 }

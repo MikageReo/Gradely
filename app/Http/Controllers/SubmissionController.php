@@ -6,6 +6,7 @@ use App\Models\Assignments;
 use App\Models\Submissions;
 use App\Models\SubmissionFile;
 use App\Models\SubmissionComments;
+use App\Models\FeedbackFile;
 use App\Models\CourseLecturer;
 use App\Models\CourseStudent;
 use Illuminate\Http\Request;
@@ -54,7 +55,7 @@ class SubmissionController extends Controller
         }
 
         if ($user->role === 'student') {
-            $submission = Submissions::with(['submissionFiles', 'submissionComments' => function ($query) {
+            $submission = Submissions::with(['submissionFiles', 'feedbackFiles', 'submissionComments' => function ($query) {
                 $query->orderBy('created_at', 'desc')->with('user');
             }])
                 ->where('assignment_id', $assignmentId)
@@ -83,7 +84,7 @@ class SubmissionController extends Controller
                 abort(403, 'This student is not enrolled in this course.');
             }
 
-            $submission = Submissions::with(['submissionFiles', 'submissionComments' => function ($query) {
+            $submission = Submissions::with(['submissionFiles', 'feedbackFiles', 'submissionComments' => function ($query) {
                 $query->orderBy('created_at', 'desc')->with('user');
             }, 'student'])
                 ->where('assignment_id', $assignmentId)
@@ -326,6 +327,8 @@ class SubmissionController extends Controller
             'submission_id' => 'required|exists:submissions,id',
             'score' => 'nullable|numeric|min:0|max:100',
             'lecturer_feedback' => 'nullable|string|max:2000',
+            'feedback_files' => 'nullable|array',
+            'feedback_files.*' => 'file|mimes:pdf,doc,docx,txt,rtf,odt,jpg,jpeg,png,gif|max:20480', // 20MB max per file
         ]);
 
         $assignment = Assignments::findOrFail($assignmentId);
@@ -368,6 +371,40 @@ class SubmissionController extends Controller
         $submission->marked_at = now();
         $submission->save();
 
+        // Handle feedback file uploads
+        if ($request->hasFile('feedback_files')) {
+            $publicPath = public_path('feedback/' . $submission->id);
+            if (!File::exists($publicPath)) {
+                File::makeDirectory($publicPath, 0755, true);
+            }
+
+            foreach ($request->file('feedback_files') as $file) {
+                $originalName = $file->getClientOriginalName();
+                $fileSize = $file->getSize();
+                $fileType = $file->getClientMimeType();
+
+                // Handle duplicate filenames by adding timestamp
+                $fileName = pathinfo($originalName, PATHINFO_FILENAME);
+                $extension = pathinfo($originalName, PATHINFO_EXTENSION);
+                $uniqueName = $fileName . '_' . time() . '_' . uniqid() . '.' . $extension;
+
+                // Move file to public folder
+                $file->move($publicPath, $uniqueName);
+                $relativePath = 'feedback/' . $submission->id . '/' . $uniqueName;
+
+                FeedbackFile::create([
+                    'submission_id' => $submission->id,
+                    'file_path' => $relativePath,
+                    'original_filename' => $originalName,
+                    'file_type' => $fileType,
+                    'file_size' => $fileSize,
+                ]);
+            }
+        }
+
+        // Reload feedback files relationship
+        $submission->load('feedbackFiles');
+
         // If AJAX request, return JSON response
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json([
@@ -379,6 +416,13 @@ class SubmissionController extends Controller
                     'lecturer_feedback' => $submission->lecturer_feedback,
                     'status' => $submission->status,
                     'marked_at' => $submission->marked_at ? $submission->marked_at->toISOString() : null,
+                    'feedback_files' => $submission->feedbackFiles->map(function ($file) {
+                        return [
+                            'id' => $file->id,
+                            'original_filename' => $file->original_filename,
+                            'file_size' => $file->file_size,
+                        ];
+                    }),
                 ]
             ]);
         }
@@ -708,5 +752,116 @@ class SubmissionController extends Controller
 
         return redirect()->route('assignment.submission', ['assignmentId' => $submission->assignment_id])
             ->with('success', 'File replaced successfully.');
+    }
+
+    /**
+     * Download feedback file (protected route)
+     * Access control:
+     * - Students can download feedback files for their own submissions
+     * - Lecturers can download feedback files for submissions they can grade
+     */
+    public function downloadFeedbackFile($submissionId, $fileId)
+    {
+        $user = Auth::user();
+
+        $submission = Submissions::with(['assignment', 'student'])->findOrFail($submissionId);
+        $file = FeedbackFile::where('id', $fileId)
+            ->where('submission_id', $submissionId)
+            ->firstOrFail();
+
+        // Check permissions
+        if ($user->role === 'student') {
+            // Students can only download feedback files for their own submissions
+            if ($submission->student_id !== $user->id) {
+                abort(403, 'You can only download feedback files for your own submissions.');
+            }
+
+            // Verify student is enrolled in the course
+            $courseLecturerIds = CourseStudent::where('student_id', $user->id)
+                ->pluck('course_lecturer_id');
+            $courseIds = CourseLecturer::whereIn('id', $courseLecturerIds)
+                ->pluck('course_id')
+                ->unique();
+            if (!$courseIds->contains($submission->assignment->course_id)) {
+                abort(403, 'You are not enrolled in this course.');
+            }
+        } elseif ($user->role === 'lecturer') {
+            // Verify lecturer is assigned to this assignment's course
+            $isAssignedLecturer = CourseLecturer::where('course_id', $submission->assignment->course_id)
+                ->where('lecturer_id', $user->id)
+                ->exists();
+
+            if (!$isAssignedLecturer && $submission->assignment->lecturer_id !== $user->id) {
+                abort(403, 'You are not authorized to access this feedback file.');
+            }
+
+            // Verify the student is enrolled in the course
+            $isEnrolled = CourseStudent::where('student_id', $submission->student_id)
+                ->whereHas('courseLecturer', function ($query) use ($submission) {
+                    $query->where('course_id', $submission->assignment->course_id);
+                })
+                ->exists();
+
+            if (!$isEnrolled) {
+                abort(403, 'This student is not enrolled in this course.');
+            }
+        } else {
+            abort(403, 'Unauthorized access.');
+        }
+
+        $filePath = public_path($file->file_path);
+        if (!File::exists($filePath)) {
+            abort(404, 'File not found.');
+        }
+
+        return response()->download($filePath, $file->original_filename);
+    }
+
+    /**
+     * Delete a feedback file
+     * Access control:
+     * - Only lecturers can delete feedback files
+     */
+    public function deleteFeedbackFile($submissionId, $fileId)
+    {
+        $user = Auth::user();
+
+        if ($user->role !== 'lecturer') {
+            abort(403, 'Only lecturers can delete feedback files.');
+        }
+
+        $submission = Submissions::with(['assignment', 'student'])->findOrFail($submissionId);
+        $file = FeedbackFile::where('id', $fileId)
+            ->where('submission_id', $submissionId)
+            ->firstOrFail();
+
+        // Verify lecturer is assigned to this assignment's course
+        $isAssignedLecturer = CourseLecturer::where('course_id', $submission->assignment->course_id)
+            ->where('lecturer_id', $user->id)
+            ->exists();
+
+        if (!$isAssignedLecturer && $submission->assignment->lecturer_id !== $user->id) {
+            abort(403, 'You are not authorized to delete this feedback file.');
+        }
+
+        // Delete physical file
+        $filePath = public_path($file->file_path);
+        if (File::exists($filePath)) {
+            File::delete($filePath);
+        }
+
+        // Delete file record
+        $file->delete();
+
+        // If AJAX request, return JSON response
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Feedback file deleted successfully.',
+            ]);
+        }
+
+        return redirect()->route('assignment.submission', ['assignmentId' => $submission->assignment_id, 'student_id' => $submission->student_id])
+            ->with('success', 'Feedback file deleted successfully.');
     }
 }

@@ -235,14 +235,45 @@
     const fileList = document.getElementById('fileList');
     const uploadSection = document.getElementById('uploadSection');
     const selectedFiles = [];
+    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
 
     if (fileInput) {
         fileInput.addEventListener('change', function(e) {
             const files = Array.from(e.target.files);
+            const invalidFiles = [];
+            const validFiles = [];
+
+            // Validate file sizes
+            files.forEach(file => {
+                if (file.size > maxSize) {
+                    invalidFiles.push(file.name + ' (' + (file.size / (1024 * 1024)).toFixed(2) + ' MB)');
+                } else {
+                    validFiles.push(file);
+                }
+            });
+
+            // Show error for files that are too large
+            if (invalidFiles.length > 0) {
+                alert('The following files exceed the 10MB limit:\n' + invalidFiles.join('\n') + '\n\nPlease select smaller files. Only files under 10MB will be uploaded.');
+            }
+
+            // Update selectedFiles with valid files only
             selectedFiles.length = 0;
-            selectedFiles.push(...files);
+            selectedFiles.push(...validFiles);
+
+            // Update the file input with valid files only
+            const dt = new DataTransfer();
+            selectedFiles.forEach(file => dt.items.add(file));
+            fileInput.files = dt.files;
+
             updateFileList();
         });
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
 
         function updateFileList() {
             fileList.innerHTML = '';
@@ -253,7 +284,7 @@
                     const fileItem = document.createElement('div');
                     fileItem.className = 'file-item';
                     fileItem.innerHTML = `
-                        <span class="file-name">${file.name}</span>
+                        <span class="file-name">${file.name} <span style="color: #6b7280; font-size: 12px;">(${formatFileSize(file.size)})</span></span>
                         <button type="button" class="file-remove" onclick="removeFile(${index})">Remove</button>
                     `;
                     fileList.appendChild(fileItem);
