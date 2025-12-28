@@ -140,11 +140,6 @@
 <!-- Course Cards -->
 <div class="courses-grid" id="coursesGrid">
     @forelse($courses as $course)
-        @php
-            // Calculate progress based on assignments
-            $totalAssignments = $course->assignments_count ?? 0;
-            $progress = $totalAssignments > 0 ? min(100, ($totalAssignments * 10)) : 0;
-        @endphp
         <a href="{{ route('lecturer.course.show', $course->id) }}" style="text-decoration: none; color: inherit;">
             <div class="course-card">
                 <div class="course-card-header">
@@ -155,7 +150,6 @@
                         <div class="course-title">{{ strtoupper($course->course_name) }}</div>
                         <div class="course-faculty">FACULTY OF COMPUTING</div>
                     </div>
-                    <div class="course-progress">{{ $progress }}% complete</div>
                 </div>
             </div>
         </a>
